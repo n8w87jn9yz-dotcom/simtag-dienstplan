@@ -43,3 +43,37 @@ assert.strictEqual(C.einchecken(z, 'XXXXXX'), null);
 
 g = C.gerechtigkeit(z);
 console.log('ok · Einsätze', g.einsaetze, '· erste Welle', g.erste, '· NEF', g.nef);
+
+// Fahrzeug-Ankunft
+{
+  const z2 = demo(C);
+  const mitKz = z2.fahrzeuge.find(f => f.kennzeichen);
+  const gelesen = mitKz.kennzeichen.replace(/[- ]/g, '').replace(/\d$/, 'B');      // Lesefehler: 8 als B
+  const t = C.fahrzeugZuKennzeichen(z2, gelesen);
+  assert.ok(t && t.fahrzeug.id === mitKz.id, 'ungenau gelesenes Kennzeichen wird zugeordnet');
+  C.ankunftBestaetigen(z2, { art: 'treffer', fid: mitKz.id });
+  assert.strictEqual(mitKz.status, 'da');
+  assert.strictEqual(C.fahrzeugZuKennzeichen(z2, 'ZZ-QQ 1'), null);
+
+  // Träger schickt mehr Fahrzeuge als zugesagt
+  const tr = mitKz.traeger;
+  let o = C.ankunftOptionen(z2, 'RTW', tr), n = 0;
+  while (o.freierPlatz && n < 20) { C.ankunftBestaetigen(z2, { art: 'platz', fid: o.freierPlatz.id, kennzeichen: 'XX-AA ' + n }); o = C.ankunftOptionen(z2, 'RTW', tr); n++; }
+  assert.strictEqual(o.freierPlatz, null);
+  assert.ok(/^\d-RTW-\d+$/.test(o.zusatz.funkrufname));
+  const zus = C.ankunftBestaetigen(z2, { art: 'zusatz', typ: 'RTW', traeger: tr, kennzeichen: 'XX-ZZ 1' });
+  assert.ok(zus.zusaetzlich && zus.wache >= 1);
+  const res = C.ankunftBestaetigen(z2, { art: 'reserve', typ: 'RTW', traeger: tr, kennzeichen: 'XX-ZZ 2' });
+  assert.ok(/^R-RTW-/.test(res.funkrufname) && !C.fzAktiv(res, z2.einstellungen));
+
+  // Am SimTag nur angekommene Fahrzeuge einplanen
+  z2.einstellungen.nurEingecheckte = true;
+  C.planen(z2, 0);
+  const geplant = new Set(z2.plan.durchgaenge.flatMap(d => d.einsaetze.flatMap(e => e.fahrzeuge.map(f => f.fid))));
+  assert.ok([...geplant].every(id => z2.fahrzeuge.find(f => f.id === id).status === 'da'));
+
+  // Vorplanung anpassen
+  assert.deepStrictEqual(C.vorplanungSetzen(z2, 'Neuer Träger', { RTW: 2, KTW: 0, NEF: 1 }), { neu: 3, entfernt: 0 });
+  assert.deepStrictEqual(C.vorplanungSetzen(z2, 'Neuer Träger', { RTW: 1, KTW: 0, NEF: 1 }), { neu: 0, entfernt: 1 });
+  console.log('ok · Ankunft, Zusatzfahrzeug, Reserve, Vorplanung');
+}

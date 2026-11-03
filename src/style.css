@@ -156,3 +156,49 @@ tr.aus td { opacity: .5; }
 .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: var(--r); font-weight: 600; z-index: 20; max-width: calc(100% - 32px); }
 .ok-gross { font-family: var(--f-display); font-size: 2.2rem; color: var(--sk3); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* Wachenfarben, Kennung, Ankunft */
+.wpunkt { display: inline-block; width: .7em; height: .7em; border-radius: 2px; margin-right: 5px; vertical-align: -.05em; }
+.kennung { background: var(--wf); color: var(--wt); border-radius: var(--r); padding: 12px 18px; display: grid; gap: 2px; text-align: center; min-width: 170px; }
+.kennung small { font-family: var(--f-display); text-transform: uppercase; letter-spacing: .1em; font-size: .8rem; font-weight: 700; opacity: .9; }
+.kennung b { font-family: var(--f-display); font-size: 2.6rem; line-height: 1; letter-spacing: .02em; }
+.ank-ok { border-color: var(--sk3); }
+.sucher { position: relative; border-radius: var(--r); overflow: hidden; background: #000; max-width: 720px; aspect-ratio: 16 / 9; }
+.sucher video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sucher-rahmen { position: absolute; left: 10%; top: 39%; width: 80%; height: 22%; border: 3px solid var(--accent); border-radius: 6px; box-shadow: 0 0 0 999px rgba(0, 0, 0, .45); }
+.optionen { display: grid; gap: 10px; }
+.option { text-align: left; display: grid; gap: 3px; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 12px 14px; cursor: pointer; position: relative; }
+.option:hover { border-color: var(--fg); }
+.option b { font-family: var(--f-display); font-size: 1.3rem; }
+.option span { color: var(--muted); font-size: .9rem; }
+.option em { justify-self: start; order: -1; font-style: normal; font-size: .75rem; font-weight: 700; background: var(--accent); color: var(--accent-ink); padding: 1px 8px; border-radius: 999px; }
+.option.empfohlen { border: 2px solid var(--accent); }
+.option-gruppe { display: grid; gap: 6px; border: 1px dashed var(--line); border-radius: var(--r); padding: 12px 14px; }
+.kz-feld { width: 140px !important; padding: 4px 6px !important; }
+details summary { cursor: pointer; font-weight: 600; }
+details[open] { display: grid; gap: 8px; }
+label.knopf { position: relative; }
+
+/* Kennungs-Zettel: Bildschirmvorschau und Druck */
+.zettel-bogen { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+.zettel { background: #fff; color: #111; border: 10px solid var(--wf); border-radius: 4px; aspect-ratio: 297 / 210; display: grid; grid-template-rows: auto 1fr auto; overflow: hidden; max-width: 100%; }
+.zettel header { background: var(--wf); color: var(--wt); font-family: var(--f-display); font-weight: 700; letter-spacing: .12em; font-size: 1rem; padding: 4px 10px 8px; display: flex; justify-content: space-between; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.zettel-kennung { font-family: var(--f-display); font-weight: 700; font-size: clamp(2.6rem, 9vw, 4.6rem); line-height: 1; display: grid; place-items: center; letter-spacing: .02em; white-space: nowrap; }
+.zettel footer { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; padding: 8px 10px; font-size: .8rem; border-top: 2px solid var(--wf); }
+.zettel-typ { background: var(--wf); color: var(--wt); font-family: var(--f-display); font-weight: 700; padding: 1px 8px; border-radius: 3px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+@media print {
+  @page { size: A4 landscape; margin: 8mm; }
+  body { background: #fff; }
+  body::before, .kopf, .demo-band, .nicht-drucken, .toast { display: none !important; }
+  main { padding: 0 !important; max-width: none; display: block; }
+  .zettel-bogen { display: block; }
+  .zettel { -webkit-print-color-adjust: exact; print-color-adjust: exact; break-inside: avoid; page-break-inside: avoid; border-width: 8mm; width: 100%; height: 190mm; aspect-ratio: auto; margin: 0 0 0; break-after: page; page-break-after: always; }
+  .zettel header { font-size: 22pt; padding: 2mm 5mm 4mm; }
+  .zettel-kennung { font-size: 150pt; }
+  .zettel footer { font-size: 16pt; padding: 4mm 5mm; border-top-width: 1.5mm; }
+  .zettel-bogen.a5 .zettel { height: 92mm; border-width: 5mm; break-after: auto; page-break-after: auto; margin-bottom: 4mm; }
+  .zettel-bogen.a5 .zettel:nth-child(2n) { break-after: page; page-break-after: always; margin-bottom: 0; }
+  .zettel-bogen.a5 .zettel-kennung { font-size: 80pt; }
+  .zettel-bogen.a5 .zettel header { font-size: 14pt; }
+  .zettel-bogen.a5 .zettel footer { font-size: 11pt; }
+}

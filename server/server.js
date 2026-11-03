@@ -19,6 +19,7 @@ const PORT = Number(process.env.PORT || 8080);
 const PASSWORT = process.env.ORGA_PASSWORT || '';
 const DATEN = path.resolve(process.env.DATEN || path.join(__dirname, 'daten'));
 const OEFFENTLICH = path.resolve(__dirname, '..', 'dist', 'public');
+const VENDOR = path.resolve(__dirname, '..', 'src', 'vendor');
 if (PASSWORT.length < 10) { console.error('ORGA_PASSWORT fehlt oder ist kürzer als 10 Zeichen.'); process.exit(1); }
 fs.mkdirSync(path.join(DATEN, 'sicherung'), { recursive: true });
 
@@ -121,6 +122,13 @@ const server = http.createServer(async (req, res) => {
       return json(res, 404, { fehler: 'Unbekannt' });
     }
     // Statische Dateien
+    // Texterkennung (Tesseract) liegt in src/vendor und wird lange zwischengespeichert
+    if (p.startsWith('/vendor/')) {
+      const v = path.join(VENDOR, decodeURIComponent(p.slice(8)));
+      if (!v.startsWith(VENDOR + path.sep) || !fs.existsSync(v)) return json(res, 404, { fehler: 'Nicht gefunden' });
+      res.writeHead(200, { 'Content-Type': TYPEN[path.extname(v)] || 'application/octet-stream', 'Cache-Control': 'public, max-age=604800' });
+      return fs.createReadStream(v).pipe(res);
+    }
     let datei = path.join(OEFFENTLICH, decodeURIComponent(p === '/' ? '/index.html' : p));
     if (!datei.startsWith(OEFFENTLICH)) return json(res, 403, { fehler: 'Verboten' });
     if (!fs.existsSync(datei) || fs.statSync(datei).isDirectory()) datei = path.join(OEFFENTLICH, 'index.html');

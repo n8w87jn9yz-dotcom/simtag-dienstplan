@@ -112,6 +112,11 @@
       setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
     } catch (e) { toast('Download ist hier nicht möglich.'); }
   }
+  const WACHE_FARBEN = ['#c62828', '#1565c0', '#2e7d32', '#f9a825', '#6a1b9a', '#ef6c00', '#00838f', '#5d4037'];
+  const WACHE_NAMEN = ['Rot', 'Blau', 'Grün', 'Gelb', 'Violett', 'Orange', 'Türkis', 'Braun'];
+  const wfarbe = w => w ? WACHE_FARBEN[(w - 1) % WACHE_FARBEN.length] : '#6b7785';
+  const wtext = w => (w === 4 ? '#1a1a1a' : '#ffffff');
+  const frnChip = (name, w) => '<span class="frn"><i class="wpunkt" style="background:' + wfarbe(w) + '"></i>' + esc(name) + '</span>';
   const kz = k => k ? '<span class="kz"><b>' + esc(k) + '</b></span>' : '<span class="leise">ohne Kennzeichen</span>';
   const typ = t => '<span class="typ ' + esc(t) + '">' + esc(t) + '</span>';
   const station = (e, id) => e.stationen.find(s => s.id === id) || { id, name: id, kurz: id };
@@ -121,13 +126,13 @@
   const datumLang = d => { try { return new Date(d + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return d; } };
 
   /* ================= Rahmen ================= */
-  const ROUTEN = [['plan', 'Mein Plan'], ['lage', 'Lagekarte'], ['stationen', 'Stationen'], ['checkin', 'Check-in'], ['orga', 'Orga']];
+  const ROUTEN = [['plan', 'Mein Plan'], ['lage', 'Lagekarte'], ['stationen', 'Stationen'], ['checkin', 'Check-in'], ['ankunft', 'Ankunft', true], ['zettel', 'Zettel', true], ['orga', 'Orga']];
   function rahmen(inhalt) {
     const e = pub.einstellungen;
     const demo = Store.modus === 'demo' || pub.demo;
     const zeit = ui.simZeit != null ? ui.simZeit : 622;
     return '<header class="kopf"><div class="kopf-innen"><div class="marke"><i></i><b>' + esc(e.titel) + '</b><span>' + esc(datumLang(e.datum)) + ' · ' + esc(e.ort) + '</span></div><nav aria-label="Bereiche">' +
-      ROUTEN.map(([id, t]) => '<a href="#' + id + '"' + (ui.route === id ? ' aria-current="page"' : '') + '>' + t + '</a>').join('') + '</nav></div></header>' +
+      ROUTEN.filter(r => !r[2] || Store.orga).map(([id, t]) => '<a href="#' + id + '"' + (ui.route === id ? ' aria-current="page"' : '') + '>' + t + '</a>').join('') + '</nav></div></header>' +
       (demo ? '<div class="demo-band"><div><span>Demo mit erfundenen Daten. Nichts davon sind echte Personen.</span>' +
         '<label for="simzeit">Simulierte Uhrzeit <input id="simzeit" type="range" min="420" max="1080" step="1" value="' + Math.round(zeit) + '"> <b class="mono" id="simzeit-text">' + C.minZuZeit(zeit) + '</b></label></div></div>' : '') +
       '<main id="inhalt">' + inhalt + '</main>';
@@ -167,7 +172,7 @@
       if (z.art === 'einsatz') {
         if (z.erste) kl += ' erste';
         innen = '<div class="zeile"><h3>' + esc(st.name) + '</h3>' + (z.erste ? '<span class="pille akzent">Erste Welle</span>' : '') + (lauf ? '<span class="pille gut">läuft</span>' : '') + '</div>' +
-          '<div class="zeile">' + typ(z.typ) + '<span class="frn">' + esc(z.funkrufname) + '</span>' + kz(z.kennzeichen) + '<span class="leise">' + esc(z.traeger) + '</span></div>' +
+          '<div class="zeile">' + typ(z.typ) + frnChip(z.funkrufname, z.wache) + kz(z.kennzeichen) + '<span class="leise">' + esc(z.traeger) + '</span></div>' +
           '<div class="alarm">Alarm ca. <b>' + esc(z.alarm) + '</b> <span class="leise">· Fahrzeug ' + z.reihenfolge + ' in der Alarmfolge</span></div>' +
           '<div><b>' + esc(z.rolle) + '</b>' + (z.team.length ? ' mit ' + z.team.map(esc).join(', ') : ' (allein)') + '</div>';
       } else if (z.art === 'pause') {
@@ -304,7 +309,7 @@
       h += '<div class="tabelle-box"><table><thead><tr><th>Alarm</th><th>Minute</th><th>Fahrzeug</th><th>Typ</th><th>Kennzeichen</th><th>Träger</th><th>Besatzung</th></tr></thead><tbody>';
       ei.fahrzeuge.forEach(f => {
         const bes = Array.isArray(f.besatzung) ? (Store.orga ? f.besatzung.map(name).join(', ') : f.besatzung.length + ' Pers.') : f.besatzung + ' Pers.';
-        h += '<tr class="' + (f.erste ? 'erste' : '') + '"><td class="mono">' + C.minZuZeit(start + f.minute) + '</td><td class="mono">+' + f.minute + '</td><td class="frn">' + esc(f.funkrufname) + '</td><td>' + typ(f.typ) + '</td><td>' + kz(f.kennzeichen) + '</td><td>' + esc(f.traeger) + '</td><td>' + esc(bes) + '</td></tr>';
+        h += '<tr class="' + (f.erste ? 'erste' : '') + '"><td class="mono">' + C.minZuZeit(start + f.minute) + '</td><td class="mono">+' + f.minute + '</td><td>' + frnChip(f.funkrufname, ei.wache) + '</td><td>' + typ(f.typ) + '</td><td>' + kz(f.kennzeichen) + '</td><td>' + esc(f.traeger) + '</td><td>' + esc(bes) + '</td></tr>';
       });
       h += '</tbody></table></div>' + (ei.hinweise && ei.hinweise.length ? '<div class="hinweis">' + ei.hinweise.map(esc).join('<br>') + '</div>' : '') + '</section>';
     });
@@ -354,7 +359,7 @@
     h += '<div class="raster">';
     h += '<section class="flaeche"><h3>Teilnehmende</h3><div class="raster" style="grid-template-columns:repeat(3,1fr)">' +
       [3, 2, 1].map(n => kart(lj(n).filter(p => p.eingecheckt).length + '<span class="leise" style="font-size:1rem"> / ' + lj(n).length + '</span>', n + '. LJ eingecheckt')).join('') + '</div>' +
-      '<label class="zeile" for="nur-ein"><input id="nur-ein" type="checkbox" data-act="nur-eingecheckte"' + (e.nurEingecheckte ? ' checked' : '') + '> Nur eingecheckte Teilnehmende einplanen (am SimTag einschalten)</label></section>';
+      '<label class="zeile" for="nur-ein"><input id="nur-ein" type="checkbox" data-act="nur-eingecheckte"' + (e.nurEingecheckte ? ' checked' : '') + '> <b>SimTag läuft:</b> nur eingecheckte Teilnehmende und angekommene Fahrzeuge einplanen</label></section>';
     h += '<section class="flaeche"><h3>Fahrzeuge</h3><div class="raster" style="grid-template-columns:repeat(3,1fr)">' + kart(k.RTW, 'RTW') + kart(k.KTW, 'KTW') + kart(k.NEF, 'NEF') + '</div>' +
       '<p class="leise">' + z.fahrzeuge.filter(f => f.status === 'da').length + ' vor Ort angemeldet, ' + z.fahrzeuge.filter(f => f.status === 'gemeldet').length + ' nur vorab gemeldet, ' + z.fahrzeuge.filter(f => f.status === 'defekt' || f.status === 'abgemeldet').length + ' fallen aus.</p></section>';
     const proD = Math.min(k.tn, k.max);
@@ -364,23 +369,6 @@
     h += '</div>';
     h += '<section class="flaeche"><h3>Check-in am Eingang</h3><div class="zeile" style="align-items:start;gap:20px"><div class="qr" id="qr-eingang"></div><div style="display:grid;gap:8px;min-width:0"><p>Diesen QR-Code am Eingang aufhängen. Teilnehmende scannen ihn und geben ihren Code ein.</p><p class="mono leise" style="word-break:break-all">' + esc(checkinUrl()) + '</p>' +
       '<label class="feld" for="orga-checkin"><span>Für jemanden einchecken (Code)</span><input id="orga-checkin" type="text" class="mono" maxlength="8" placeholder="ABC123"></label><button class="knopf" data-act="orga-checkin">Einchecken</button></div></div></section>';
-    return h;
-  }
-
-  function orgaFahrzeuge() {
-    const z = voll;
-    const traeger = [...new Set(z.fahrzeuge.map(f => f.traeger).concat(z.personen.map(p => p.traeger)).filter(Boolean))].sort();
-    let h = planStatus();
-    h += '<form class="flaeche" id="fz-form"><h3>Fahrzeug anmelden</h3><div class="zeile">' + C.TYPEN.map(t => '<button type="button" class="knopf gross" data-act="fz-typ" data-typ="' + t + '" aria-pressed="' + (ui.fzTyp === t) + '">' + t + '</button>').join('') + '</div>' +
-      '<div class="raster"><label class="feld" for="fz-kz"><span>Kennzeichen</span><input id="fz-kz" type="text" autocomplete="off" placeholder="GT-RD 9012" class="mono"></label>' +
-      '<label class="feld" for="fz-tr"><span>Träger</span><input id="fz-tr" type="text" list="traeger-liste" autocomplete="off" placeholder="Kreis Gütersloh"></label></div>' +
-      '<datalist id="traeger-liste">' + traeger.map(t => '<option value="' + esc(t) + '"></option>').join('') + '</datalist>' +
-      '<div class="zeile"><button class="knopf haupt" type="submit">Fahrzeug ist da</button><span class="leise">Die App ordnet es einer Wache zu und vergibt den Funkrufnamen.</span></div><div id="fz-ergebnis">' + (ui.fzMeldung || '') + '</div></form>';
-    const liste = z.fahrzeuge.slice().sort((a, b) => a.wache - b.wache || a.typ.localeCompare(b.typ) || a.nr - b.nr);
-    h += '<section class="flaeche"><h3>Alle Fahrzeuge (' + liste.length + ')</h3><div class="tabelle-box"><table><thead><tr><th>Funkrufname</th><th>Typ</th><th>Kennzeichen</th><th>Träger</th><th>Wache</th><th>Status</th></tr></thead><tbody>' +
-      liste.map(f => '<tr class="' + (f.status === 'defekt' || f.status === 'abgemeldet' ? 'aus' : '') + '"><td class="frn">' + esc(f.funkrufname) + '</td><td>' + typ(f.typ) + '</td><td>' + kz(f.kennzeichen) + '</td><td>' + esc(f.traeger) + '</td><td>' + f.wache + '</td><td>' +
-        '<select data-act="fz-status" data-id="' + f.id + '" aria-label="Status ' + esc(f.funkrufname) + '">' + [['gemeldet', 'vorab gemeldet'], ['da', 'vor Ort'], ['defekt', 'defekt'], ['abgemeldet', 'abgemeldet']].map(([v, t]) => '<option value="' + v + '"' + (f.status === v ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></td></tr>').join('') +
-      '</tbody></table></div></section>';
     return h;
   }
 
@@ -414,7 +402,7 @@
       const st = station(e, ei.station), start = C.zeitZuMin(dg.start);
       h += '<section class="flaeche"><div class="zeile" style="justify-content:space-between"><h3>Wache ' + ei.wache + ' → ' + esc(st.id.replace('S', 'SIM ') + ' ' + st.name) + '</h3><span class="leise">' + ei.fahrzeuge.reduce((s, f) => s + f.besatzung.length, 0) + ' fahren · ' + ei.pause.length + ' beobachten</span></div>' +
         '<div class="tabelle-box"><table><thead><tr><th>Alarm</th><th>Fahrzeug</th><th>Kennzeichen</th><th>Fahrer:in</th><th>Besatzung</th></tr></thead><tbody>' +
-        ei.fahrzeuge.map(f => '<tr class="' + (f.erste ? 'erste' : '') + '"><td class="mono">' + C.minZuZeit(start + f.minute) + '</td><td><span class="frn">' + esc(f.funkrufname) + '</span></td><td>' + kz(f.kennzeichen) + '</td><td>' + esc(name(f.fahrer)) + (f.fahrerFremd ? ' <span class="pille warn" title="Niemand aus der Besatzung kommt vom Träger des Fahrzeugs">fremder Träger</span>' : '') + '</td><td>' + f.besatzung.filter(x => x !== f.fahrer).map(name).map(esc).join(', ') + '</td></tr>').join('') +
+        ei.fahrzeuge.map(f => '<tr class="' + (f.erste ? 'erste' : '') + '"><td class="mono">' + C.minZuZeit(start + f.minute) + '</td><td>' + frnChip(f.funkrufname, ei.wache) + '</td><td>' + kz(f.kennzeichen) + '</td><td>' + esc(name(f.fahrer)) + (f.fahrerFremd ? ' <span class="pille warn" title="Niemand aus der Besatzung kommt vom Träger des Fahrzeugs">fremder Träger</span>' : '') + '</td><td>' + f.besatzung.filter(x => x !== f.fahrer).map(name).map(esc).join(', ') + '</td></tr>').join('') +
         '</tbody></table></div>' + (ei.pause.length ? '<p class="leise"><b>Beobachten:</b> ' + ei.pause.map(name).map(esc).join(', ') + '</p>' : '') +
         (ei.hinweise.length ? '<div class="hinweis">' + ei.hinweise.map(esc).join('<br>') + '</div>' : '') + '</section>';
     });
@@ -465,6 +453,253 @@
     return h;
   }
 
+  /* ================= Fahrzeuge: Vorplanung und Übersicht ================= */
+  const FZ_STATUS = [['gemeldet', 'erwartet'], ['da', 'ist da'], ['reserve', 'Reserve'], ['defekt', 'defekt'], ['abgemeldet', 'abgemeldet']];
+  const FZ_FILTER = [['alle', 'Alle'], ['gemeldet', 'Erwartet'], ['da', 'Ist da'], ['reserve', 'Reserve'], ['aus', 'Fällt aus']];
+  const zeitKurz = iso => iso ? new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '';
+
+  function traegerUebersicht(z) {
+    const m = new Map();
+    z.fahrzeuge.forEach(f => {
+      const k = f.traeger || 'ohne Träger';
+      if (!m.has(k)) m.set(k, { traeger: k, RTW: [0, 0], KTW: [0, 0], NEF: [0, 0], offen: [], extra: 0 });
+      const t = m.get(k);
+      if (f.status === 'reserve' || f.zusaetzlich) { t.extra++; if (f.status === 'reserve') return; }
+      if (f.status === 'defekt' || f.status === 'abgemeldet') return;
+      if (!f.zusaetzlich) t[f.typ][0]++;
+      if (f.status === 'da') t[f.typ][1]++;
+      if (f.status === 'gemeldet') t.offen.push(f);
+    });
+    return [...m.values()].sort((a, b) => a.traeger.localeCompare(b.traeger));
+  }
+
+  function orgaFahrzeuge() {
+    const z = voll;
+    const traeger = [...new Set(z.fahrzeuge.map(f => f.traeger).concat(z.personen.map(p => p.traeger)).filter(Boolean))].sort();
+    let h = planStatus();
+    h += '<div class="hinweis">Am SimTag werden Fahrzeuge über <a href="#ankunft">Ankunft</a> erfasst: Kennzeichen scannen, das Fahrzeug ist sofort als „ist da“ markiert und bekommt seine Kennung.</div>';
+
+    // Vorplanung je Träger
+    const tu = traegerUebersicht(z);
+    h += '<section class="flaeche"><h3>Vorplanung je Träger</h3><p class="leise">So viele Fahrzeuge hat jeder Träger zugesagt. Jedes bekommt schon jetzt eine Kennung. Kennzeichen sind freiwillig; wenn sie bekannt sind, erkennt die Ankunft das Fahrzeug direkt.</p>' +
+      '<div class="tabelle-box"><table><thead><tr><th>Träger</th><th>RTW</th><th>KTW</th><th>NEF</th><th>Zusätzlich</th><th>Noch erwartet</th></tr></thead><tbody>' +
+      tu.map(t => '<tr><td>' + esc(t.traeger) + '</td>' + C.TYPEN.map(ty => '<td class="mono">' + t[ty][1] + '/' + t[ty][0] + '</td>').join('') + '<td class="mono">' + (t.extra || '') + '</td><td>' + t.offen.map(f => frnChip(f.funkrufname, f.wache)).join(' ') + '</td></tr>').join('') +
+      '</tbody></table></div><p class="leise">Zahlen: angekommen / zugesagt.</p>' +
+      '<form id="vp-form" class="zeile" style="align-items:end"><label class="feld" for="vp-tr" style="flex:1;min-width:180px"><span>Träger</span><input id="vp-tr" type="text" list="traeger-liste" autocomplete="off"></label>' +
+      C.TYPEN.map(t => '<label class="feld" for="vp-' + t + '" style="width:80px"><span>' + t + '</span><input id="vp-' + t + '" type="number" min="0" max="30" value="0"></label>').join('') +
+      '<button class="knopf haupt" type="submit">Zusage speichern</button></form>' +
+      '<datalist id="traeger-liste">' + traeger.map(t => '<option value="' + esc(t) + '"></option>').join('') + '</datalist>' +
+      '<details><summary>Mehrere Träger auf einmal einfügen</summary><p class="leise">Eine Zeile pro Träger: <span class="mono">Träger; RTW; KTW; NEF</span></p><textarea id="vp-import" placeholder="Kreis Gütersloh;5;0;1"></textarea><button class="knopf" data-act="vp-import">Einfügen</button></details>' +
+      (ui.fzMeldung || '') + '</section>';
+
+    // Übersicht mit Suche
+    const q = (ui.fzSuche || '').toLowerCase(), fil = ui.fzFilter || 'alle';
+    const passt = f => (fil === 'alle' || (fil === 'aus' ? (f.status === 'defekt' || f.status === 'abgemeldet') : f.status === fil)) &&
+      (!q || (f.funkrufname + ' ' + f.kennzeichen + ' ' + C.kzNorm(f.kennzeichen) + ' ' + f.traeger + ' ' + f.typ + ' wache ' + f.wache).toLowerCase().includes(q));
+    const liste = z.fahrzeuge.filter(passt).sort((a, b) => (a.wache || 99) - (b.wache || 99) || a.typ.localeCompare(b.typ) || a.nr - b.nr);
+    h += '<section class="flaeche"><div class="zeile" style="justify-content:space-between"><h3>Alle Fahrzeuge</h3><span class="leise">' + liste.length + ' von ' + z.fahrzeuge.length + '</span></div>' +
+      '<div class="zeile"><label class="feld" for="fz-suche" style="flex:1;min-width:200px"><span>Suchen</span><input id="fz-suche" type="search" value="' + esc(ui.fzSuche || '') + '" placeholder="Kennung, Kennzeichen oder Träger"></label>' +
+      '<div class="zeile">' + FZ_FILTER.map(([v, t]) => '<button class="knopf klein" data-act="fz-filter" data-v="' + v + '" aria-pressed="' + (fil === v) + '">' + t + '</button>').join('') + '</div></div>' +
+      '<div class="tabelle-box"><table><thead><tr><th>Kennung</th><th>Typ</th><th>Kennzeichen</th><th>Träger</th><th>Status</th><th>Angekommen</th></tr></thead><tbody>' +
+      liste.map(f => '<tr class="' + (f.status === 'defekt' || f.status === 'abgemeldet' ? 'aus' : '') + '"><td>' + frnChip(f.funkrufname, f.wache) + (f.zusaetzlich ? ' <span class="pille warn">zusätzlich</span>' : '') + (f.ersetzt ? ' <span class="pille" title="Platz übernommen von ' + esc(f.ersetzt) + '">statt ' + esc(f.ersetzt) + '</span>' : '') + '</td><td>' + typ(f.typ) + '</td>' +
+        '<td><input type="text" class="mono kz-feld" data-act="fz-kz" data-id="' + f.id + '" value="' + esc(f.kennzeichen) + '" placeholder="unbekannt" aria-label="Kennzeichen ' + esc(f.funkrufname) + '"></td><td>' + esc(f.traeger) + '</td><td>' +
+        '<select data-act="fz-status" data-id="' + f.id + '" aria-label="Status ' + esc(f.funkrufname) + '">' + FZ_STATUS.map(([v, t]) => '<option value="' + v + '"' + (f.status === v ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></td><td class="mono">' + zeitKurz(f.status === 'da' && f.registriert) + '</td></tr>').join('') +
+      '</tbody></table></div>' + (liste.length ? '' : '<p class="leise">Kein Fahrzeug passt zur Suche.</p>') + '</section>';
+    return h;
+  }
+
+  /* ================= Ankunft am SimTag ================= */
+  const ank = { text: '', gelesen: '', ocr: '', typ: 'RTW', traeger: '', ergebnis: null, kamera: null, stream: null };
+
+  function viewAnkunft() {
+    if (!Store.orga) { ui.orgaTab = 'lage'; return viewOrga(); }
+    if (!voll) return '<p class="leise">Lade Daten …</p>';
+    const z = voll;
+    const vor = z.fahrzeuge.filter(f => !f.zusaetzlich && f.status !== 'reserve');
+    const da = vor.filter(f => f.status === 'da').length;
+    let h = '<div class="seitenkopf"><div><div class="eyebrow">Einfahrt</div><h1>Fahrzeug-Ankunft</h1></div><p><b>' + da + '</b> von ' + vor.length + ' zugesagten Fahrzeugen sind da' +
+      (z.fahrzeuge.filter(f => f.zusaetzlich).length ? ', dazu ' + z.fahrzeuge.filter(f => f.zusaetzlich).length + ' zusätzliche' : '') + '.</p></div>';
+
+    // Erfassen
+    h += '<section class="flaeche ank-scan"><h3>Kennzeichen erfassen</h3>';
+    if (ank.kamera === 'an') {
+      h += '<div class="sucher"><video id="kamera-video" autoplay playsinline muted></video><div class="sucher-rahmen" aria-hidden="true"></div></div>' +
+        '<div class="zeile"><button class="knopf haupt gross" data-act="kamera-foto">Erfassen</button><button class="knopf" data-act="kamera-stopp">Kamera aus</button></div>';
+    } else {
+      h += '<div class="zeile"><button class="knopf haupt gross" data-act="kamera-start">Kamera</button>' +
+        '<label class="knopf gross" for="kz-foto">Foto<input id="kz-foto" type="file" accept="image/*" capture="environment" hidden></label></div>' +
+        '<p class="leise">Kennzeichen formatfüllend und gerade aufnehmen. Ein bekanntes Fahrzeug wird sofort als „ist da“ markiert.</p>';
+    }
+    h += '<form id="ank-form" class="zeile" style="align-items:end"><label class="feld" for="ank-kz" style="flex:1;min-width:200px"><span>Kennzeichen (oder eintippen)</span><input id="ank-kz" type="text" class="mono" autocomplete="off" autocapitalize="characters" value="' + esc(ank.text) + '" placeholder="GT-RD 9012" style="font-size:1.3rem"></label><button class="knopf haupt" type="submit">Prüfen</button></form>' +
+      (ank.ocr ? '<p class="leise" role="status">' + esc(ank.ocr) + '</p>' : '') + '</section>';
+
+    if (ank.ergebnis) h += ankunftErgebnis(z);
+
+    // Noch erwartet
+    const tu = traegerUebersicht(z).filter(t => t.offen.length);
+    h += '<section class="flaeche"><h3>Noch erwartet</h3>' + (tu.length ? '<div class="tabelle-box"><table><thead><tr><th>Träger</th><th>Fehlt noch</th></tr></thead><tbody>' +
+      tu.map(t => '<tr><td>' + esc(t.traeger) + '</td><td><div class="zeile" style="gap:4px 14px">' + t.offen.map(f => '<span title="' + esc(f.typ + (f.kennzeichen ? ' ' + f.kennzeichen : '')) + '">' + frnChip(f.funkrufname, f.wache) + '</span>').join('') + '</div></td></tr>').join('') + '</tbody></table></div>'
+      : '<p>Alle zugesagten Fahrzeuge sind da.</p>') + '</section>';
+    return h;
+  }
+
+  function kennungKachel(f) {
+    return '<div class="kennung" style="--wf:' + wfarbe(f.wache) + ';--wt:' + wtext(f.wache) + '"><small>' + (f.wache ? 'Wache ' + f.wache : 'Reserve') + '</small><b>' + esc(f.funkrufname) + '</b></div>';
+  }
+
+  function ankunftErgebnis(z) {
+    const er = ank.ergebnis;
+    if (er.art === 'fertig') {
+      const f = z.fahrzeuge.find(x => x.id === er.fid); if (!f) return '';
+      return '<section class="flaeche ank-ok"><div class="zeile" style="gap:18px;align-items:center">' + kennungKachel(f) + '<div style="display:grid;gap:6px;min-width:0">' +
+        '<div class="ok-gross" style="font-size:1.6rem">' + (er.schonDa ? 'War schon da' : f.status === 'reserve' ? 'Als Reserve erfasst' : '✓ Ist da') + '</div>' +
+        '<div class="zeile">' + typ(f.typ) + kz(f.kennzeichen) + '<span>' + esc(f.traeger) + '</span></div>' +
+        (er.gelesen && C.kzNorm(er.gelesen) !== C.kzNorm(f.kennzeichen) ? '<div class="leise">Gelesen: <span class="mono">' + esc(er.gelesen) + '</span>, zugeordnet zu <span class="mono">' + esc(f.kennzeichen) + '</span>.</div>' : '') +
+        '<div class="leise">' + (f.status === 'reserve' ? 'Fährt in den Bereitstellungsraum und wird nicht eingeplant.' : 'Zettel <b>' + esc(f.funkrufname) + '</b> hinter die Windschutzscheibe.') + '</div>' +
+        '<div class="zeile">' + (er.schonDa ? '' : '<button class="knopf klein" data-act="ank-undo">Rückgängig</button>') + '<button class="knopf klein" data-act="ank-neu">Nächstes Fahrzeug</button></div></div></div>' +
+        (C.planVeraltet(z) ? planStatus() : '') + '</section>';
+    }
+    // Unbekanntes Kennzeichen: Typ und Träger wählen, dann Möglichkeiten
+    const vorschlag = C.traegerVorschlag(z, er.kennzeichen);
+    const alleTraeger = [...new Set(z.fahrzeuge.map(f => f.traeger).filter(Boolean))].sort();
+    if (!ank.traeger && vorschlag.length === 1) ank.traeger = vorschlag[0];
+    let h = '<section class="flaeche"><h3>' + kz(er.kennzeichen) + ' steht nicht in der Vorplanung</h3>' +
+      '<div class="zeile">' + C.TYPEN.map(t => '<button class="knopf gross" data-act="ank-typ" data-typ="' + t + '" aria-pressed="' + (ank.typ === t) + '">' + t + '</button>').join('') + '</div>' +
+      '<div class="feld"><span>Träger</span><div class="zeile">' + [...new Set(vorschlag.concat(alleTraeger))].slice(0, 16).map(t => '<button class="knopf klein" data-act="ank-traeger" data-v="' + esc(t) + '" aria-pressed="' + (ank.traeger === t) + '">' + (vorschlag.includes(t) ? '★ ' : '') + esc(t) + '</button>').join('') + '</div>' +
+      '<input id="ank-tr" type="text" list="traeger-liste2" value="' + esc(ank.traeger) + '" placeholder="anderer Träger" aria-label="Träger"><datalist id="traeger-liste2">' + alleTraeger.map(t => '<option value="' + esc(t) + '"></option>').join('') + '</datalist></div>';
+    if (!ank.traeger) return h + '<p class="leise">Träger wählen, dann zeigt die App, welche Kennung das Fahrzeug bekommt.</p></section>';
+    const o = C.ankunftOptionen(z, ank.typ, ank.traeger);
+    const knopf = (art, text, sub, empf, fid) => '<button class="option' + (empf ? ' empfohlen' : '') + '" data-act="ank-option" data-art="' + art + '"' + (fid ? ' data-fid="' + fid + '"' : '') + '><b>' + text + '</b><span>' + sub + '</span>' + (empf ? '<em>Empfohlen</em>' : '') + '</button>';
+    if (o.freierPlatz) {
+      h += '<p>' + esc(ank.traeger) + ' hat ' + o.gemeldet + ' ' + ank.typ + ' zugesagt, ' + o.da + ' sind da.</p>' +
+        knopf('platz', 'Bekommt ' + esc(o.freierPlatz.funkrufname), 'Vorgeplanter Platz von ' + esc(ank.traeger) + ', Wache ' + o.freierPlatz.wache + '. Wird sofort als „ist da“ markiert.', true, o.freierPlatz.id);
+    } else {
+      h += '<div class="hinweis"><b>' + (o.gemeldet ? esc(ank.traeger) + ' hat ' + o.gemeldet + ' ' + ank.typ + ' zugesagt, dies ist Nummer ' + (o.da + 1) + '.' : esc(ank.traeger) + ' hat keinen ' + ank.typ + ' zugesagt.') + '</b> ' +
+        (o.fehlendePlaetze > 0 ? 'Es fehlen ' + o.fehlendePlaetze + ' Sitzplätze für die Teilnehmenden, ein zusätzliches Fahrzeug hilft.' : 'Alle Teilnehmenden haben schon einen Platz.') + '</div>' +
+        '<div class="optionen">' + knopf('zusatz', 'Zusätzlich einplanen als ' + esc(o.zusatz.funkrufname), 'Wache ' + o.zusatz.wache + '. Danach ab dem nächsten Durchgang neu planen.', o.empfehlung === 'zusatz') +
+        knopf('reserve', 'Als Reserve bereitstellen', 'Bekommt eine R-Kennung, wird nicht eingeplant. Lässt sich später aktivieren.', o.empfehlung === 'reserve');
+      if (o.fremdeOffen.length) {
+        h += '<div class="option-gruppe"><b>Platz eines fehlenden Fahrzeugs übernehmen</b><span class="leise">Nur wenn sicher ist, dass das andere nicht mehr kommt. Der Plan bleibt dann unverändert.</span><div class="zeile">' +
+          o.fremdeOffen.slice(0, 12).map(f => '<button class="knopf klein" data-act="ank-option" data-art="uebernehmen" data-fid="' + f.id + '">' + frnChip(f.funkrufname, f.wache) + ' <span class="leise">' + esc(f.traeger) + '</span></button>').join('') + '</div></div>';
+      }
+      h += '</div>';
+    }
+    return h + '</section>';
+  }
+
+  async function ankunftPruefen(text, gelesen) {
+    ank.text = text; ank.traeger = ''; ank.ergebnis = null;
+    if (!C.kzNorm(text)) { ank.ocr = 'Kein Kennzeichen erkannt. Bitte eintippen.'; return render(); }
+    const z = await Store.voll();
+    const t = C.fahrzeugZuKennzeichen(z, text);
+    if (t) {
+      const f = t.fahrzeug;
+      if (f.status === 'da' || f.status === 'reserve') { ank.ergebnis = { art: 'fertig', fid: f.id, schonDa: true, gelesen: gelesen || text }; await neu(); return; }
+      await Store.aendern(zz => C.ankunftBestaetigen(zz, { art: 'treffer', fid: f.id }));
+      ank.ergebnis = { art: 'fertig', fid: f.id, gelesen: gelesen || text, vorher: f.status };
+      ank.ocr = ''; await neu(); return;
+    }
+    ank.ergebnis = { art: 'unbekannt', kennzeichen: text };
+    await neu();
+  }
+
+  /* ---- Kamera und Texterkennung (Tesseract, liegt auf dem eigenen Server) ---- */
+  let ocrWorker = null;
+  function skriptLaden(src) {
+    return new Promise((ok, nein) => { if (window.Tesseract) return ok(); const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = nein; document.head.appendChild(s); });
+  }
+  async function ocrBereit() {
+    if (ocrWorker) return ocrWorker;
+    const basis = new URL('vendor/ocr/', document.baseURI).href;
+    await skriptLaden(basis + 'tesseract.min.js');
+    ocrWorker = await window.Tesseract.createWorker('eng', 1, { workerPath: basis + 'worker.min.js', corePath: basis, langPath: basis.replace(/\/$/, ''), gzip: true, workerBlobURL: false });
+    await ocrWorker.setParameters({ tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789- ', preserve_interword_spaces: '1' });
+    return ocrWorker;
+  }
+
+  function aufbereiten(quelle, sw, sh, ausschnitt) {
+    // Ausschnitt [x,y,b,h] in Anteilen; Graustufen und Kontrast strecken, auf ~1400 px Breite skalieren
+    const [ax, ay, ab, ah] = ausschnitt || [0, 0, 1, 1];
+    const bx = sw * ax, by = sh * ay, bb = sw * ab, bh = sh * ah;
+    const f = Math.min(3, 1400 / bb);
+    const c = document.createElement('canvas'); c.width = Math.round(bb * f); c.height = Math.round(bh * f);
+    const g = c.getContext('2d'); g.drawImage(quelle, bx, by, bb, bh, 0, 0, c.width, c.height);
+    const d = g.getImageData(0, 0, c.width, c.height), p = d.data;
+    let min = 255, max = 0;
+    for (let i = 0; i < p.length; i += 4) { const v = 0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2]; p[i] = v; if (v < min) min = v; if (v > max) max = v; }
+    const sp = Math.max(1, max - min);
+    for (let i = 0; i < p.length; i += 4) { const v = (p[i] - min) * 255 / sp; p[i] = p[i + 1] = p[i + 2] = v; }
+    g.putImageData(d, 0, 0);
+    return c;
+  }
+
+  const KZ_MUSTER = /\b([A-ZÄÖÜ]{1,3})[\s-]+([A-Z]{1,2})[\s-]*(\d{1,4})\s?([EH]?)\b/;
+  function besterTreffer(texte) {
+    const z = voll;
+    const zeilen = texte.flatMap(t => String(t || '').toUpperCase().split(/\n/)).map(t => t.replace(/[^A-Z0-9ÄÖÜ\- ]/g, ' ').replace(/\s+/g, ' ').trim()).filter(t => t.length >= 4);
+    for (const zl of zeilen) { const t = z && C.fahrzeugZuKennzeichen(z, zl); if (t) return zl; }
+    for (const zl of zeilen) { const m = zl.match(KZ_MUSTER); if (m) return m[1] + '-' + m[2] + ' ' + m[3] + m[4]; }
+    return zeilen.sort((a, b) => b.length - a.length)[0] || '';
+  }
+
+  async function erkennen(bild, sw, sh, nurRahmen) {
+    ank.ocr = 'Erkenne Kennzeichen …'; ank.ergebnis = null; render();
+    try {
+      const w = await ocrBereit();
+      const texte = [];
+      if (nurRahmen) {
+        texte.push((await w.recognize(aufbereiten(bild, sw, sh, [0.1, 0.39, 0.8, 0.22]), { tessedit_pageseg_mode: '7' })).data.text);
+      } else {
+        texte.push((await w.recognize(aufbereiten(bild, sw, sh, [0.05, 0.3, 0.9, 0.4]))).data.text);
+        if (!C.kzNorm(besterTreffer(texte))) texte.push((await w.recognize(aufbereiten(bild, sw, sh))).data.text);
+      }
+      const kzText = besterTreffer(texte);
+      ank.ocr = kzText ? 'Gelesen: ' + kzText : 'Kein Kennzeichen erkannt. Bitte näher ran oder eintippen.';
+      if (kzText) await ankunftPruefen(kzText, kzText); else render();
+    } catch (e) {
+      ank.ocr = 'Die Texterkennung ist hier nicht verfügbar. Bitte das Kennzeichen eintippen.'; render();
+    }
+  }
+
+  async function kameraStart() {
+    try {
+      ank.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
+      ank.kamera = 'an'; render();
+      const v = document.getElementById('kamera-video'); if (v) { v.srcObject = ank.stream; await v.play().catch(() => {}); }
+    } catch (e) {
+      ank.kamera = null; ank.ocr = 'Kamera nicht verfügbar. Nimm „Foto“ oder tippe das Kennzeichen ein.'; render();
+    }
+  }
+  function kameraStopp() { if (ank.stream) ank.stream.getTracks().forEach(t => t.stop()); ank.stream = null; ank.kamera = null; }
+  function kameraNachRender() { const v = document.getElementById('kamera-video'); if (v && ank.stream && v.srcObject !== ank.stream) { v.srcObject = ank.stream; v.play().catch(() => {}); } }
+
+  /* ================= Kennungs-Zettel ================= */
+  function viewZettel() {
+    if (!Store.orga) { ui.orgaTab = 'lage'; return viewOrga(); }
+    if (!voll) return '<p class="leise">Lade Daten …</p>';
+    const z = voll, e = z.einstellungen, S = e.stationen.length;
+    const aus = ui.zettelAuswahl || 'alle', fmt = ui.zettelFormat || 'a4';
+    const liste = z.fahrzeuge.filter(f => f.status !== 'abgemeldet' && f.status !== 'defekt')
+      .filter(f => aus === 'alle' || (aus === 'da' ? f.status === 'da' : aus === 'R' ? f.status === 'reserve' : f.wache === Number(aus)))
+      .sort((a, b) => (a.wache || 99) - (b.wache || 99) || ['RTW', 'KTW', 'NEF'].indexOf(a.typ) - ['RTW', 'KTW', 'NEF'].indexOf(b.typ) || a.nr - b.nr);
+    let h = '<div class="seitenkopf nicht-drucken"><div><div class="eyebrow">Zum Ausdrucken</div><h1>Kennungs-Zettel</h1></div><p>Ein Zettel pro Fahrzeug für die Windschutzscheibe. Die Farbe steht für die Wache.</p></div>';
+    h += '<section class="flaeche nicht-drucken"><div class="zeile"><span class="leise">Welche:</span>' +
+      [['alle', 'Alle'], ['da', 'Nur angekommene']].concat(Array.from({ length: S }, (_, i) => [String(i + 1), 'Wache ' + (i + 1)])).concat([['R', 'Reserve']])
+        .map(([v, t]) => '<button class="knopf klein" data-act="zettel-aus" data-v="' + v + '" aria-pressed="' + (aus === v) + '">' + (/^\d$/.test(v) ? '<i class="wpunkt" style="background:' + wfarbe(Number(v)) + '"></i>' : '') + t + '</button>').join('') + '</div>' +
+      '<div class="zeile"><span class="leise">Inhalt:</span><button class="knopf klein" data-act="zettel-blanko" aria-pressed="' + !!ui.zettelBlanko + '">Träger und Kennzeichen leer lassen (zum Ausfüllen)</button></div>' +
+      '<div class="zeile"><span class="leise">Format:</span><button class="knopf klein" data-act="zettel-fmt" data-v="a4" aria-pressed="' + (fmt === 'a4') + '">A4 quer, 1 pro Blatt</button><button class="knopf klein" data-act="zettel-fmt" data-v="a5" aria-pressed="' + (fmt === 'a5') + '">A5, 2 pro Blatt</button></div>' +
+      '<div class="zeile">' + (window.SIMTAG_DEMO ? '<span class="leise">Drucken geht in der Demo nicht, auf dem SimTag-Server schon.</span>' : '<button class="knopf haupt" data-act="drucken">' + liste.length + ' Zettel drucken</button>') +
+      '<span class="leise">Farben: ' + Array.from({ length: S }, (_, i) => '<i class="wpunkt" style="background:' + wfarbe(i + 1) + '"></i>Wache ' + (i + 1) + ' ' + WACHE_NAMEN[i]).join(' · ') + '</span></div>' +
+      '<p class="leise">Im Druckdialog „Hintergrundgrafiken“ einschalten, damit die Farben mitgedruckt werden.</p></section>';
+    h += '<div class="zettel-bogen ' + fmt + '">' + liste.map(f => {
+      const w = f.wache;
+      return '<article class="zettel" style="--wf:' + wfarbe(w) + ';--wt:' + wtext(w) + '"><header>' + (w ? 'WACHE ' + w + ' · ' + WACHE_NAMEN[(w - 1) % WACHE_NAMEN.length].toUpperCase() : 'RESERVE') + '<span>' + esc(e.titel) + '</span></header>' +
+        '<div class="zettel-kennung">' + esc(f.funkrufname) + '</div>' +
+        '<footer><span class="zettel-typ">' + esc(f.typ) + '</span><span>Träger: <b>' + esc((!ui.zettelBlanko && f.traeger) || '____________________') + '</b></span><span>Kennzeichen: <b>' + esc((!ui.zettelBlanko && f.kennzeichen) || '________________') + '</b></span></footer></article>';
+    }).join('') + '</div>';
+    return h;
+  }
+
   /* ================= Rendern ================= */
   async function laden() {
     pub = await Store.oeffentlich();
@@ -475,9 +710,10 @@
   function render() {
     const fokus = document.activeElement && document.activeElement.id;
     const sel = fokus && document.activeElement.selectionStart;
-    const view = { plan: viewPlan, lage: viewLage, stationen: viewStationen, checkin: viewCheckin, orga: viewOrga }[ui.route] || viewPlan;
+    const view = { plan: viewPlan, lage: viewLage, stationen: viewStationen, checkin: viewCheckin, orga: viewOrga, ankunft: viewAnkunft, zettel: viewZettel }[ui.route] || viewPlan;
     document.getElementById('app').innerHTML = rahmen(view());
     if (fokus) { const el = document.getElementById(fokus); if (el) { el.focus(); try { if (sel != null && el.setSelectionRange) el.setSelectionRange(sel, sel); } catch (e) { /* egal */ } } }
+    kameraNachRender();
     const qr = document.getElementById('qr-eingang');
     if (qr && window.QRCode) { qr.innerHTML = ''; new window.QRCode(qr, { text: checkinUrl(), width: 180, height: 180, correctLevel: window.QRCode.CorrectLevel.M }); }
   }
@@ -487,6 +723,7 @@
   function route() {
     ui.checkinMeldung = ''; ui.fzMeldung = '';
     const h = (location.hash || '').replace('#', '');
+    if (h !== 'ankunft') kameraStopp();
     ui.route = ROUTEN.some(r => r[0] === h) ? h : 'plan';
     neu();
   }
@@ -508,17 +745,13 @@
       if (f.id === 'login-form') {
         try { await Store.anmelden($('#pw').value); await neu(); } catch (e) { $('#login-fehler').innerHTML = '<div class="hinweis rot">' + esc(e.message || 'Anmeldung fehlgeschlagen') + '</div>'; }
       }
-      if (f.id === 'fz-form') {
-        const kzW = $('#fz-kz').value.trim(), tr = $('#fz-tr').value.trim();
-        if (!kzW || !tr) { ui.fzMeldung = '<div class="hinweis rot">Bitte Kennzeichen und Träger eintragen.</div>'; return render(); }
-        const typW = ui.fzTyp;
-        const fz = await Store.aendern(z => {
-          const da = z.fahrzeuge.find(x => C.norm(x.kennzeichen) === C.norm(kzW));
-          if (da) { da.status = 'da'; da.registriert = new Date().toISOString(); da.typ = typW; da.traeger = tr; return da; }
-          return C.fahrzeugHinzufuegen(z, { typ: typW, kennzeichen: kzW, traeger: tr, status: 'da' });
-        });
-        ui.fzMeldung = '<div class="hinweis gruen">' + typ(fz.typ) + ' ' + kz(fz.kennzeichen) + ' ist angemeldet als <b class="frn" style="font-size:1.2rem">' + esc(fz.funkrufname) + '</b> (Wache ' + fz.wache + '). Plan danach neu erstellen.</div>';
-        await neu();
+      if (f.id === 'ank-form') { const t = $('#ank-kz').value.trim(); ank.ocr = ''; return ankunftPruefen(t, null); }
+      if (f.id === 'vp-form') {
+        const tr = $('#vp-tr').value.trim(); if (!tr) return toast('Bitte einen Träger eintragen.');
+        const anz = {}; C.TYPEN.forEach(t => { anz[t] = Number($('#vp-' + t).value) || 0; });
+        const r = await Store.aendern(z => C.vorplanungSetzen(z, tr, anz));
+        ui.fzMeldung = '<div class="hinweis gruen">' + esc(tr) + ': ' + C.TYPEN.map(t => anz[t] + ' ' + t).join(', ') + ' gespeichert (' + r.neu + ' neu, ' + r.entfernt + ' entfernt).</div>';
+        return neu();
       }
       if (f.id === 'einst-form') {
         const num = id => Number($('#' + id).value);
@@ -549,6 +782,40 @@
       if (act === 'abmelden') { Store.abmelden(); voll = null; return render(); }
       if (act === 'lj') { ui.filterLj = Number(b.dataset.lj); return render(); }
       if (act === 'plan-d') { ui.planD = Number(b.dataset.i); return render(); }
+      if (act === 'fz-filter') { ui.fzFilter = b.dataset.v; return render(); }
+      if (act === 'vp-import') {
+        const zeilen = $('#vp-import').value.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+        const n = await Store.aendern(z => { let k = 0; zeilen.forEach(l => { const t = l.split(/[;\t]/).map(x => x.trim()); if (!t[0] || /^tr(ä|ae)ger$/i.test(t[0])) return; C.vorplanungSetzen(z, t[0], { RTW: t[1], KTW: t[2], NEF: t[3] }); k++; }); return k; });
+        toast(n + ' Träger übernommen'); return neu();
+      }
+      if (act === 'kamera-start') return kameraStart();
+      if (act === 'kamera-stopp') { kameraStopp(); return render(); }
+      if (act === 'kamera-foto') {
+        const v = $('#kamera-video'); if (!v || !v.videoWidth) return;
+        const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight; c.getContext('2d').drawImage(v, 0, 0);
+        return erkennen(c, c.width, c.height, true);
+      }
+      if (act === 'ank-typ') { ank.typ = b.dataset.typ; return render(); }
+      if (act === 'ank-traeger') { ank.traeger = b.dataset.v; return render(); }
+      if (act === 'ank-neu') { ank.ergebnis = null; ank.text = ''; ank.ocr = ''; ank.traeger = ''; render(); const i = $('#ank-kz'); if (i) i.focus(); return; }
+      if (act === 'ank-option') {
+        const art = b.dataset.art, fid = b.dataset.fid, kzT = ank.ergebnis && ank.ergebnis.kennzeichen;
+        const f = await Store.aendern(z => C.ankunftBestaetigen(z, { art, fid, typ: ank.typ, traeger: ank.traeger, kennzeichen: kzT }));
+        ank.ergebnis = { art: 'fertig', fid: f.id, neuAngelegt: art === 'zusatz' || art === 'reserve' };
+        return neu();
+      }
+      if (act === 'ank-undo') {
+        const er = ank.ergebnis;
+        await Store.aendern(z => {
+          const f = z.fahrzeuge.find(x => x.id === er.fid); if (!f) return;
+          if (er.neuAngelegt) z.fahrzeuge.splice(z.fahrzeuge.indexOf(f), 1); else { f.status = 'gemeldet'; f.registriert = null; }
+        });
+        ank.ergebnis = null; toast('Rückgängig gemacht'); return neu();
+      }
+      if (act === 'zettel-aus') { ui.zettelAuswahl = b.dataset.v; return render(); }
+      if (act === 'zettel-blanko') { ui.zettelBlanko = !ui.zettelBlanko; return render(); }
+      if (act === 'zettel-fmt') { ui.zettelFormat = b.dataset.v; return render(); }
+      if (act === 'drucken') { window.print(); return; }
       if (act === 'fz-typ') { ui.fzTyp = b.dataset.typ; document.querySelectorAll('[data-act="fz-typ"]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); return; }
       if (act === 'planen') {
         const ab = Number(b.dataset.ab);
@@ -597,7 +864,22 @@
   document.addEventListener('change', async ev => {
     const el = ev.target, act = el.dataset.act;
     try {
-      if (act === 'fz-status') { await Store.aendern(z => { const f = z.fahrzeuge.find(x => x.id === el.dataset.id); if (f) f.status = el.value; }); return neu(); }
+      if (act === 'fz-status') {
+        await Store.aendern(z => {
+          const f = z.fahrzeuge.find(x => x.id === el.dataset.id); if (!f) return;
+          if (f.status === 'reserve' && el.value !== 'reserve') { C.reserveAktivieren(z, f.id); f.status = el.value; return; }
+          f.status = el.value; if (el.value === 'da') f.registriert = new Date().toISOString();
+        });
+        return neu();
+      }
+      if (act === 'fz-kz') { await Store.aendern(z => { const f = z.fahrzeuge.find(x => x.id === el.dataset.id); if (f) f.kennzeichen = el.value.trim().toUpperCase(); }); return neu(); }
+      if (el.id === 'ank-tr') { ank.traeger = el.value.trim(); return render(); }
+      if (el.id === 'kz-foto' && el.files[0]) {
+        const url = URL.createObjectURL(el.files[0]); const img = new Image();
+        img.onload = () => { erkennen(img, img.naturalWidth, img.naturalHeight, false); URL.revokeObjectURL(url); };
+        img.onerror = () => { ank.ocr = 'Das Foto ließ sich nicht öffnen.'; render(); };
+        img.src = url; return;
+      }
       if (act === 'p-status') { await Store.aendern(z => { const p = z.personen.find(x => x.id === el.dataset.id); if (p) p.status = el.value; }); return neu(); }
       if (act === 'nur-eingecheckte') { await Store.aendern(z => { z.einstellungen.nurEingecheckte = el.checked; }); return neu(); }
       if (el.id === 'karte-bild' && el.files[0]) {
@@ -613,6 +895,7 @@
       const t = $('#simzeit-text'); if (t) t.textContent = C.minZuZeit(ui.simZeit);
       if (ui.route === 'lage' || ui.route === 'plan') { clearTimeout(ui.tz); ui.tz = setTimeout(render, 30); }
     }
+    if (ev.target.id === 'fz-suche') { ui.fzSuche = ev.target.value; clearTimeout(ui.ts); ui.ts = setTimeout(render, 200); }
     if (ev.target.id === 'suche') { ui.suche = ev.target.value; clearTimeout(ui.ts); ui.ts = setTimeout(render, 200); }
   });
 

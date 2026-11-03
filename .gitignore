@@ -4,3 +4,5 @@ daten/
 node_modules/
 .DS_Store
 dist/simtag-dienstplan.html
+dist/public/vendor/
+dist/public/vendor/

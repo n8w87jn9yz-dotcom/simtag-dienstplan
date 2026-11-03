@@ -77,7 +77,7 @@
   // Teilnehmende 3. LJ auf Wachen verteilen (eine Wache je Station). Klassen bleiben möglichst zusammen.
   function wachenKapazitaet(zustand) {
     const e = zustand.einstellungen, S = e.stationen.length, cap = Array(S).fill(0);
-    zustand.fahrzeuge.forEach(f => { if (f.wache && f.status !== 'abgemeldet' && f.status !== 'defekt') cap[f.wache - 1] += e.besatzung[f.typ][1]; });
+    zustand.fahrzeuge.forEach(f => { if (fzAktiv(f, e)) cap[f.wache - 1] += e.besatzung[f.typ][1]; });
     return cap.map(c => c || 1);
   }
 
@@ -133,7 +133,7 @@
     const S = zustand.einstellungen.stationen.length;
     const zaehl = Array(S).fill(0), gesamt = Array(S).fill(0);
     zustand.fahrzeuge.forEach(f => {
-      if (f === fz || !f.wache || f.status === 'abgemeldet') return;
+      if (f === fz || !f.wache || f.status === 'abgemeldet' || f.status === 'reserve') return;
       gesamt[f.wache - 1]++;
       if (f.typ === fz.typ) zaehl[f.wache - 1]++;
     });
@@ -146,7 +146,7 @@
     const belegt = new Set(zustand.fahrzeuge.filter(f => f !== fz && f.wache === fz.wache && f.typ === fz.typ).map(f => f.nr));
     let n = 1; while (belegt.has(n)) n++;
     fz.nr = n;
-    fz.funkrufname = fz.wache + '-' + fz.typ + '-' + n;
+    fz.funkrufname = (fz.wache || 'R') + '-' + fz.typ + '-' + n;
   }
 
   function fahrzeugHinzufuegen(zustand, daten) {
@@ -155,13 +155,19 @@
       traeger: (daten.traeger || '').trim(), status: daten.status || 'da',
       registriert: daten.registriert || new Date().toISOString()
     };
-    fz.wache = daten.wache || fahrzeugWacheWaehlen(zustand, fz);
+    fz.wache = daten.status === 'reserve' ? 0 : (daten.wache || fahrzeugWacheWaehlen(zustand, fz));
     zustand.fahrzeuge.push(fz);
     funkrufnameVergeben(zustand, fz);
     return fz;
   }
 
   /* ---------- Planung ---------- */
+
+  // Fahrzeug wird eingeplant? Reserve, defekt und abgemeldet nie; am SimTag (nurEingecheckte) nur angekommene.
+  function fzAktiv(f, e) {
+    if (f.status === 'abgemeldet' || f.status === 'defekt' || f.status === 'reserve' || !f.wache) return false;
+    return e.nurEingecheckte ? f.status === 'da' : true;
+  }
 
   function aktiv(p, e) {
     if (p.status === 'abgemeldet' || p.status === 'krank') return false;
@@ -199,7 +205,7 @@
   function planeWache(zustand, dIndex, wache, station, statistik, zufall) {
     const e = zustand.einstellungen;
     const leute = zustand.personen.filter(p => p.lj === 3 && p.wache === wache && aktiv(p, e));
-    const fzAlle = zustand.fahrzeuge.filter(f => f.wache === wache && f.status !== 'abgemeldet' && f.status !== 'defekt');
+    const fzAlle = zustand.fahrzeuge.filter(f => f.wache === wache && fzAktiv(f, e));
     const hinweise = [];
     const g = id => (statistik[id] || (statistik[id] = leereStatistik()));
 
@@ -342,7 +348,7 @@
   function fingerabdruck(zustand) {
     const e = zustand.einstellungen;
     const p = zustand.personen.filter(x => x.lj === 3 && aktiv(x, e)).map(x => x.id + ':' + x.wache).sort().join(',');
-    const f = zustand.fahrzeuge.filter(x => x.status !== 'abgemeldet' && x.status !== 'defekt').map(x => x.id + ':' + x.wache).sort().join(',');
+    const f = zustand.fahrzeuge.filter(x => fzAktiv(x, e)).map(x => x.id + ':' + x.wache).sort().join(',');
     return hash(p + '|' + f + '|' + JSON.stringify([e.besatzung, e.ersteWelle, e.nefPosition, e.stationen.length, e.durchgaenge.length]));
   }
   function hash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); }
@@ -373,7 +379,7 @@
 
   function kapazitaet(zustand) {
     const e = zustand.einstellungen;
-    const fz = zustand.fahrzeuge.filter(f => f.status !== 'abgemeldet' && f.status !== 'defekt');
+    const fz = zustand.fahrzeuge.filter(f => fzAktiv(f, e));
     const anz = t => fz.filter(f => f.typ === t).length;
     const min = TYPEN.reduce((s, t) => s + anz(t) * e.besatzung[t][0], 0);
     const max = TYPEN.reduce((s, t) => s + anz(t) * e.besatzung[t][1], 0);
@@ -418,6 +424,131 @@
     return { person: p, zeilen };
   }
 
+
+
+  /* ---------- Fahrzeug-Ankunft am SimTag ---------- */
+
+  const ORTE = { BI: 'Bielefeld', GT: 'Gütersloh', HF: 'Herford', LIP: 'Lippe', DT: 'Lippe', LE: 'Lippe', HX: 'Höxter', WAR: 'Höxter', SO: 'Soest', LP: 'Lippstadt',
+    HAM: 'Hamm', MS: 'Münster', D: 'Düsseldorf', PB: 'Paderborn', MI: 'Minden', WAF: 'Warendorf', BE: 'Beckum', UN: 'Unna', DO: 'Dortmund', HSK: 'Hochsauerland', OE: 'Olpe', COE: 'Coesfeld', ST: 'Steinfurt', BOR: 'Borken', RE: 'Recklinghausen' };
+
+  function kzNorm(k) { return String(k || '').toUpperCase().replace(/[^A-Z0-9ÄÖÜ]/g, ''); }
+
+  // Typische Lesefehler korrigieren: hinten Ziffern, vorne Buchstaben
+  function kzKorrigiert(k) {
+    const n = kzNorm(k);
+    const zuZiffer = { O: '0', D: '0', I: '1', L: '1', Z: '2', S: '5', B: '8', G: '6', T: '7' };
+    const zuBuchst = { 0: 'O', 1: 'I', 2: 'Z', 5: 'S', 8: 'B', 6: 'G' };
+    const m = n.match(/^(.*?)([0-9OIZSBGDLT]{1,4})([EH]?)$/);
+    if (!m || !m[1]) return n;
+    return m[1].replace(/[0-9]/g, c => zuBuchst[c] || c) + m[2].replace(/[A-Z]/g, c => zuZiffer[c] || c) + m[3];
+  }
+
+  function abstand(a, b) {
+    const d = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+    for (let j = 1; j <= b.length; j++) d[0][j] = j;
+    for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    return d[a.length][b.length];
+  }
+
+  // Sucht ein Fahrzeug der Vorplanung zum (evtl. ungenau gelesenen) Kennzeichen
+  function fahrzeugZuKennzeichen(zustand, kz) {
+    const kandidaten = [kzNorm(kz), kzKorrigiert(kz)].filter(Boolean);
+    if (!kandidaten[0]) return null;
+    let best = null, bestD = Infinity, zweiter = Infinity;
+    zustand.fahrzeuge.forEach(f => {
+      const fk = kzNorm(f.kennzeichen); if (!fk) return;
+      const dd = Math.min(...kandidaten.map(c => abstand(c, fk)));
+      if (dd < bestD) { zweiter = bestD; bestD = dd; best = f; } else if (dd < zweiter) zweiter = dd;
+    });
+    const erlaubt = kandidaten[0].length >= 6 ? 2 : 1;
+    if (!best || bestD > erlaubt || (bestD > 0 && zweiter <= bestD)) return null;
+    return { fahrzeug: best, genau: bestD === 0, abstand: bestD };
+  }
+
+  // Träger-Vorschlag aus dem Ortskürzel
+  function traegerVorschlag(zustand, kzText) {
+    const roh = String(kzText || '').toUpperCase().trim();
+    const teil = roh.split(/[^A-ZÄÖÜ]/)[0];
+    const n = kzNorm(roh);
+    const praefixe = teil && teil.length <= 3 ? [teil] : [n.slice(0, 3), n.slice(0, 2), n.slice(0, 1)];
+    const alle = [...new Set(zustand.fahrzeuge.map(f => f.traeger).filter(Boolean))];
+    for (const pr of praefixe) {
+      if (!pr) continue;
+      const ausPlan = [...new Set(zustand.fahrzeuge.filter(f => kzNorm(f.kennzeichen).startsWith(pr) && String(f.kennzeichen).toUpperCase().split(/[^A-ZÄÖÜ]/)[0] === pr).map(f => f.traeger))];
+      if (ausPlan.length) return ausPlan;
+      if (ORTE[pr]) { const t = alle.filter(x => x.toLowerCase().includes(ORTE[pr].toLowerCase())); if (t.length) return t; }
+    }
+    return [];
+  }
+
+  // Möglichkeiten für ein Fahrzeug, das nicht in der Vorplanung steht
+  function ankunftOptionen(zustand, typ, traeger) {
+    const e = zustand.einstellungen;
+    const gleich = f => f.typ === typ && norm(f.traeger) === norm(traeger);
+    const gemeldet = zustand.fahrzeuge.filter(f => gleich(f) && f.status !== 'reserve');
+    const offen = gemeldet.filter(f => f.status === 'gemeldet').sort((a, b) => (!!a.kennzeichen - !!b.kennzeichen) || a.wache - b.wache || a.nr - b.nr);
+    const fremdeOffen = zustand.fahrzeuge.filter(f => f.typ === typ && f.status === 'gemeldet' && !gleich(f)).sort((a, b) => a.wache - b.wache || a.nr - b.nr);
+    const k = kapazitaet(Object.assign({}, zustand, { einstellungen: Object.assign({}, e, { nurEingecheckte: false }) }));
+    const fehlendePlaetze = Math.max(0, k.tn - k.max);
+    const probe = { typ, traeger, status: 'da' };
+    const wache = fahrzeugWacheWaehlen(zustand, probe);
+    const belegt = new Set(zustand.fahrzeuge.filter(f => f.wache === wache && f.typ === typ).map(f => f.nr));
+    let nr = 1; while (belegt.has(nr)) nr++;
+    return {
+      gemeldet: gemeldet.length, da: gemeldet.filter(f => f.status === 'da').length,
+      freierPlatz: offen[0] || null, fremdeOffen, fehlendePlaetze,
+      zusatz: { wache, funkrufname: wache + '-' + typ + '-' + nr },
+      empfehlung: fehlendePlaetze > 0 ? 'zusatz' : 'reserve'
+    };
+  }
+
+  // Ankunft festhalten. art: treffer | platz | uebernehmen | zusatz | reserve
+  function ankunftBestaetigen(zustand, a) {
+    const jetzt = new Date().toISOString();
+    let f;
+    if (a.art === 'treffer' || a.art === 'platz' || a.art === 'uebernehmen') {
+      f = zustand.fahrzeuge.find(x => x.id === a.fid);
+      if (!f) return null;
+      if (a.art === 'uebernehmen' && norm(f.traeger) !== norm(a.traeger)) f.ersetzt = f.traeger;
+      if (a.kennzeichen) f.kennzeichen = String(a.kennzeichen).trim().toUpperCase();
+      if (a.traeger) f.traeger = a.traeger;
+      f.status = 'da'; f.registriert = jetzt;
+      // Kennzeichen und Träger auch im bestehenden Plan nachtragen
+      (zustand.plan ? zustand.plan.durchgaenge : []).forEach(d => d.einsaetze.forEach(ei => ei.fahrzeuge.forEach(x => {
+        if (x.fid === f.id) { x.kennzeichen = f.kennzeichen; x.traeger = f.traeger; }
+      })));
+    } else {
+      f = fahrzeugHinzufuegen(zustand, { typ: a.typ, kennzeichen: a.kennzeichen, traeger: a.traeger, status: a.art === 'reserve' ? 'reserve' : 'da', registriert: jetzt });
+      f.zusaetzlich = true;
+    }
+    return f;
+  }
+
+  // Reserve-Fahrzeug doch einplanen (bekommt Wache und neuen Funkrufnamen)
+  function reserveAktivieren(zustand, fid) {
+    const f = zustand.fahrzeuge.find(x => x.id === fid);
+    if (!f) return null;
+    f.status = 'da'; f.wache = fahrzeugWacheWaehlen(zustand, f); funkrufnameVergeben(zustand, f);
+    return f;
+  }
+
+  // Vorplanung: Anzahl gemeldeter Fahrzeuge je Träger und Typ festlegen
+  function vorplanungSetzen(zustand, traeger, anzahl) {
+    const ergebnis = { neu: 0, entfernt: 0 };
+    TYPEN.forEach(t => {
+      const soll = Math.max(0, Number(anzahl[t]) || 0);
+      const vorhanden = zustand.fahrzeuge.filter(f => f.typ === t && norm(f.traeger) === norm(traeger) && f.status !== 'reserve' && !f.zusaetzlich);
+      for (let i = vorhanden.length; i < soll; i++) { fahrzeugHinzufuegen(zustand, { typ: t, traeger, status: 'gemeldet', registriert: null }); ergebnis.neu++; }
+      const ueber = vorhanden.filter(f => f.status === 'gemeldet').sort((a, b) => (!!a.kennzeichen - !!b.kennzeichen) || b.nr - a.nr);
+      let zuviel = vorhanden.length - soll;
+      while (zuviel > 0 && ueber.length) {
+        const f = ueber.shift();
+        zustand.fahrzeuge.splice(zustand.fahrzeuge.indexOf(f), 1); ergebnis.entfernt++; zuviel--;
+      }
+    });
+    return ergebnis;
+  }
 
   /* ---------- Datenschutz: was ohne Orga-Zugang sichtbar ist ---------- */
 
@@ -471,7 +602,7 @@
     TYPEN, rng, neuerCode, uid, zeitZuMin, minZuZeit, standardEinstellungen, leererZustand,
     wachenVerteilen, wachenAusgleichen, gruppenVerteilen, fahrzeugHinzufuegen, fahrzeugWacheWaehlen, funkrufnameVergeben,
     planen, planVeraltet, fingerabdruck, aktuellerDurchgang, gerechtigkeit, kapazitaet, persoenlicherPlan,
-    statistikAus, stationFuer, aktiv, norm, oeffentlich, findeCode, meinPlan, einchecken
+    statistikAus, stationFuer, aktiv, fzAktiv, norm, oeffentlich, kzNorm, kzKorrigiert, abstand, fahrzeugZuKennzeichen, traegerVorschlag, ankunftOptionen, ankunftBestaetigen, reserveAktivieren, vorplanungSetzen, findeCode, meinPlan, einchecken
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.SimCore = api;
 })(typeof window !== 'undefined' ? window : globalThis);

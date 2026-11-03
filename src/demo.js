@@ -17,7 +17,7 @@
     const add = (lj, klassen, n) => { for (let i = 0; i < n; i++) z.personen.push({ id: Core.uid('p'), name: name(), klasse: klassen[i % klassen.length], lj, traeger: pick(traeger), code: Core.neuerCode(codes, r), eingecheckt: null, status: 'angemeldet' }); };
     add(3, klassen3, 170); add(2, klassen2, 110); add(1, klassen1, 90);
     const kz = { 'BF Bielefeld':'BI-FW', 'Kreis Gütersloh':'GT-RD', 'Kreis Herford':'HF-RD', 'Kreis Lippe':'LIP-BS', 'Kreis Höxter':'HX-KL', 'Kreis Soest':'SO-RD', 'BF Hamm':'HAM-FW', 'BF Münster':'MS-FW', 'FW Herford':'HF-BF', 'Rettungsdienst gGmbH':'BI-RD', 'BIEKRA':'BI-KT', 'FW Düsseldorf':'D-US' };
-    const fz = (typ, n) => { for (let i = 0; i < n; i++) { const t = pick(traeger); Core.fahrzeugHinzufuegen(z, { typ, traeger: t, kennzeichen: kz[t] + ' ' + (100 + Math.floor(r() * 900)), registriert: null, status: 'gemeldet' }); } };
+    const fz = (typ, n) => { for (let i = 0; i < n; i++) { const t = pick(traeger); Core.fahrzeugHinzufuegen(z, { typ, traeger: t, kennzeichen: r() < 0.6 ? kz[t] + ' ' + (100 + Math.floor(r() * 900)) : '', registriert: null, status: 'gemeldet' }); } };
     fz('RTW', 32); fz('KTW', 6); fz('NEF', 10);
     Core.wachenVerteilen(z, false); Core.gruppenVerteilen(z, 2); Core.gruppenVerteilen(z, 1);
     Core.planen(z, 0);
