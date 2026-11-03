@@ -1,0 +1,1 @@
+worker.min.js (tesseract.js 5.1.1): eine Stelle gepatcht. Beim Initialisieren wurde für Sprachobjekte {code, data} versehentlich t.data statt t.code als Sprachname verwendet. Ersetzt: return"string"==typeof t?t:t.data -> ...t.code

@@ -1470,7 +1470,14 @@ label.knopf { position: relative; }
     if (ocrWorker) return ocrWorker;
     const basis = new URL('vendor/ocr/', document.baseURI).href;
     await skriptLaden(basis + 'tesseract.min.js');
-    ocrWorker = await window.Tesseract.createWorker('eng', 1, { workerPath: basis + 'worker.min.js', corePath: basis, langPath: basis.replace(/\/$/, ''), gzip: true, workerBlobURL: false });
+    // Sprachdaten selbst laden: auf dem Server als .gz, in der Demo als Base64-Text
+    let daten = null;
+    try { const r = await fetch(basis + 'eng.traineddata.gz'); if (r.ok) daten = new Uint8Array(await r.arrayBuffer()); } catch (e) { /* weiter */ }
+    if (!daten || daten[0] !== 31) {
+      const r = await fetch(basis + 'eng.traineddata.b64.txt'); if (!r.ok) throw new Error('Sprachdaten fehlen');
+      const bin = atob((await r.text()).trim()); daten = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) daten[i] = bin.charCodeAt(i);
+    }
+    ocrWorker = await window.Tesseract.createWorker([{ code: 'eng', data: daten }], 1, { workerPath: basis + 'worker.min.js', corePath: basis, workerBlobURL: false });
     await ocrWorker.setParameters({ tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789- ', preserve_interword_spaces: '1' });
     return ocrWorker;
   }
