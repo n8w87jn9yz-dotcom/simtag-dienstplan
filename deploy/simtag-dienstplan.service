@@ -1,0 +1,17 @@
+[Unit]
+Description=SimTag Dienstplan
+After=network.target
+
+[Service]
+User=simtag
+WorkingDirectory=/opt/simtag-dienstplan
+EnvironmentFile=/etc/simtag-dienstplan.env
+Environment=DATEN=/var/lib/simtag-dienstplan
+ExecStart=/usr/bin/node server/server.js
+Restart=always
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/simtag-dienstplan
+
+[Install]
+WantedBy=multi-user.target

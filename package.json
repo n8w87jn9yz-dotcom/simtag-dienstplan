@@ -1,0 +1,12 @@
+{
+  "name": "simtag-dienstplan",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dienstplan, Lagekarte und Check-in für den SimTag (Notfallsanitäter-Ausbildung)",
+  "scripts": {
+    "build": "python3 build.py",
+    "start": "node server/server.js",
+    "test": "node test/planung.test.js"
+  },
+  "engines": { "node": ">=18" }
+}

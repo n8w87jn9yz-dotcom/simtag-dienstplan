@@ -1,0 +1,6 @@
+server/daten/
+daten/
+*.tmp
+node_modules/
+.DS_Store
+dist/simtag-dienstplan.html

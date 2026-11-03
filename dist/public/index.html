@@ -1,0 +1,1355 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>SimTag 2027 Dienstplan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: Kopfleiste mit Navigation, darunter eine Arbeitsfläche; Karten nur für Einsatzblöcke. */
+:root {
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --surface-2: #e3e8ee;
+  --line: #c9d1da;
+  --fg: #15212c;
+  --muted: #566573;
+  --accent: #d94a12;
+  --accent-ink: #ffffff;
+  --blau: #1f4e8c;
+  --sk1: #c62828;
+  --sk2: #d39a00;
+  --sk3: #2e7d32;
+  --plate: #ffffff;
+  --plate-ink: #111111;
+  --map-ground: #dfe7d6;
+  --map-road: #f6f3ea;
+  --map-build: #c8cdd3;
+  --f-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e151c; --surface: #17212b; --surface-2: #1f2c38; --line: #2e3e4d; --fg: #e5ebf0; --muted: #9aa9b6;
+    --accent: #ff6a33; --accent-ink: #1a0b03; --blau: #7fb0ff; --sk1: #ff6b6b; --sk2: #ffcf4d; --sk3: #6fd47a;
+    --plate: #e9edf0; --plate-ink: #111111; --map-ground: #1d2a22; --map-road: #2d3a44; --map-build: #33414d; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e151c; --surface: #17212b; --surface-2: #1f2c38; --line: #2e3e4d; --fg: #e5ebf0; --muted: #9aa9b6;
+  --accent: #ff6a33; --accent-ink: #1a0b03; --blau: #7fb0ff; --sk1: #ff6b6b; --sk2: #ffcf4d; --sk3: #6fd47a;
+  --plate: #e9edf0; --plate-ink: #111111; --map-ground: #1d2a22; --map-road: #2d3a44; --map-build: #33414d; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.45; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--fg); }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 700; line-height: 1.1; text-wrap: balance; margin: 0; }
+h1 { font-size: 1.9rem; letter-spacing: .01em; }
+h2 { font-size: 1.45rem; }
+h3 { font-size: 1.12rem; }
+p { margin: 0; max-width: 68ch; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.num, td, .mono { font-variant-numeric: tabular-nums; }
+
+.kopf { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--fg); color: var(--bg);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.kopf-innen { max-width: 1240px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 20px; padding-block: 10px; }
+.marke { display: flex; align-items: baseline; gap: 10px; }
+.marke b { font-family: var(--f-display); font-size: 1.5rem; letter-spacing: .02em; text-transform: uppercase; }
+.marke span { font-size: .82rem; opacity: .75; }
+.marke i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); align-self: center; }
+nav { display: flex; flex-wrap: wrap; gap: 2px; margin-left: auto; }
+nav a { color: inherit; text-decoration: none; font-family: var(--f-display); font-size: 1.05rem; letter-spacing: .03em; text-transform: uppercase; padding: 6px 10px; border-radius: var(--r); opacity: .78; }
+nav a:hover { opacity: 1; background: color-mix(in srgb, var(--bg) 12%, transparent); }
+nav a[aria-current="page"] { opacity: 1; box-shadow: inset 0 -3px 0 var(--accent); border-radius: 0; }
+
+.demo-band { background: repeating-linear-gradient(135deg, var(--accent) 0 14px, color-mix(in srgb, var(--accent) 80%, var(--fg)) 14px 28px); color: var(--accent-ink);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.demo-band div { max-width: 1240px; margin: 0 auto; padding-block: 5px; font-size: .86rem; font-weight: 600; display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; }
+.demo-band label { display: flex; gap: 6px; align-items: center; }
+.demo-band input[type=range] { width: 160px; accent-color: var(--fg); }
+
+main { max-width: 1240px; margin: 0 auto; padding-block: 22px 60px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 20px; }
+.seitenkopf { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 10px 20px; }
+.seitenkopf p { color: var(--muted); }
+.eyebrow { font-family: var(--f-display); text-transform: uppercase; letter-spacing: .09em; font-size: .8rem; color: var(--muted); font-weight: 600; }
+
+.flaeche { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.raster { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.raster > * { min-width: 0; }
+.zeile { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.zeile.ende { justify-content: flex-end; }
+.leise { color: var(--muted); font-size: .9rem; }
+.trenner { height: 1px; background: var(--line); }
+
+.knopf { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); padding: 8px 14px; border-radius: var(--r); cursor: pointer; font-weight: 600; }
+.knopf:hover { border-color: var(--fg); }
+.knopf.haupt { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.knopf.haupt:hover { filter: brightness(1.06); }
+.knopf.klein { padding: 4px 9px; font-size: .86rem; }
+.knopf[disabled] { opacity: .5; cursor: not-allowed; }
+.knopf.gross { font-family: var(--f-display); font-size: 1.6rem; letter-spacing: .04em; padding: 16px 10px; min-width: 110px; }
+.knopf[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+.feld { display: grid; gap: 4px; min-width: 0; }
+.feld span { font-size: .8rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+input[type=text], input[type=password], input[type=time], input[type=number], input[type=date], select, textarea {
+  border: 1px solid var(--line); background: var(--bg); padding: 8px 10px; border-radius: var(--r); width: 100%; min-width: 0; }
+textarea { min-height: 120px; font-family: var(--f-mono); font-size: .85rem; }
+.code-eingabe { font-family: var(--f-mono); font-size: 2rem; letter-spacing: .3em; text-transform: uppercase; text-align: center; padding: 12px; max-width: 300px; }
+
+/* Funkrufname und Kennzeichen */
+.frn { font-family: var(--f-mono); font-weight: 600; font-size: .88rem; white-space: nowrap; }
+.kz { display: inline-flex; align-items: stretch; border: 1.5px solid var(--plate-ink); border-radius: 3px; background: var(--plate); color: var(--plate-ink); font-family: var(--f-mono); font-size: .78rem; font-weight: 600; white-space: nowrap; line-height: 1.5; }
+.kz::before { content: "D"; background: #1f4ea8; color: #fff; font-size: .6rem; padding: 0 3px; display: flex; align-items: end; }
+.kz b { padding: 0 5px; font-weight: 600; }
+.typ { font-family: var(--f-display); font-weight: 700; font-size: .8rem; letter-spacing: .05em; padding: 1px 6px; border-radius: 3px; border: 1px solid currentColor; }
+.typ.RTW { color: var(--accent); } .typ.KTW { color: var(--blau); } .typ.NEF { color: var(--sk1); }
+.pille { display: inline-block; font-size: .78rem; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); }
+.pille.gut { background: color-mix(in srgb, var(--sk3) 22%, transparent); color: var(--sk3); }
+.pille.warn { background: color-mix(in srgb, var(--sk2) 25%, transparent); color: color-mix(in srgb, var(--sk2) 70%, var(--fg)); }
+.pille.schlecht { background: color-mix(in srgb, var(--sk1) 20%, transparent); color: var(--sk1); }
+.pille.akzent { background: var(--accent); color: var(--accent-ink); }
+
+/* Tabellen */
+.tabelle-box { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th { text-align: left; font-family: var(--f-display); text-transform: uppercase; letter-spacing: .05em; font-size: .8rem; color: var(--muted); background: var(--surface-2); padding: 7px 10px; white-space: nowrap; }
+td { padding: 6px 10px; border-top: 1px solid var(--line); vertical-align: top; }
+tr.erste td:first-child { box-shadow: inset 4px 0 0 var(--accent); }
+tr.aus td { opacity: .5; }
+
+/* Persönlicher Plan */
+.ablauf { display: grid; gap: 12px; }
+.block { display: grid; grid-template-columns: 92px 1fr; gap: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; }
+.block .zeit { font-family: var(--f-display); font-size: 1.35rem; line-height: 1; }
+.block .zeit small { display: block; font-size: .85rem; color: var(--muted); margin-top: 4px; }
+.block.erste { border-color: var(--accent); box-shadow: inset 5px 0 0 var(--accent); }
+.block.pause { background: var(--surface-2); }
+.block > div { min-width: 0; display: grid; gap: 6px; }
+.alarm { font-family: var(--f-display); font-size: 1.1rem; }
+.alarm b { color: var(--accent); }
+@media (max-width: 480px) { .block { grid-template-columns: 1fr; gap: 8px; } }
+
+.kennzahl { display: grid; gap: 2px; }
+.kennzahl b { font-family: var(--f-display); font-size: 2rem; line-height: 1; }
+.kennzahl span { color: var(--muted); font-size: .85rem; }
+.balken { display: flex; height: 10px; border-radius: 3px; overflow: hidden; background: var(--surface-2); }
+.balken i { display: block; height: 100%; }
+
+/* Lagekarte */
+.lage { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; }
+@media (max-width: 900px) { .lage { grid-template-columns: 1fr; } }
+.karte { position: relative; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--map-ground); aspect-ratio: 16 / 10; max-width: 100%; touch-action: none; }
+.karte svg { display: block; width: 100%; height: 100%; }
+.karte .st-label { font-family: var(--f-display); font-weight: 700; font-size: 15px; fill: var(--fg); paint-order: stroke; stroke: var(--map-ground); stroke-width: 4px; }
+.karte .klein-label { font-family: var(--f-mono); font-size: 9px; fill: var(--fg); }
+.karte .zieh { cursor: grab; }
+.legende { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .82rem; color: var(--muted); }
+.legende i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+
+.qr { background: #fff; padding: 12px; border-radius: var(--r); width: fit-content; }
+.qr img, .qr canvas { display: block; }
+.hinweis { border-left: 4px solid var(--sk2); background: color-mix(in srgb, var(--sk2) 12%, var(--surface)); padding: 10px 12px; border-radius: 0 var(--r) var(--r) 0; }
+.hinweis.rot { border-left-color: var(--sk1); background: color-mix(in srgb, var(--sk1) 10%, var(--surface)); }
+.hinweis.gruen { border-left-color: var(--sk3); background: color-mix(in srgb, var(--sk3) 12%, var(--surface)); }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--line); }
+.tabs button { border: 0; background: none; padding: 8px 12px; cursor: pointer; font-family: var(--f-display); font-size: 1.02rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.tabs button[aria-selected="true"] { color: var(--fg); box-shadow: inset 0 -3px 0 var(--accent); }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: var(--r); font-weight: 600; z-index: 20; max-width: calc(100% - 32px); }
+.ok-gross { font-family: var(--f-display); font-size: 2.2rem; color: var(--sk3); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head><body>
+<div id="app"><p style="padding:24px">SimTag-Dienstplan wird geladen …</p></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script></script>
+<script>
+/* SimTag Dienstplan – Kernlogik (Browser und Node). Keine Abhängigkeiten. */
+(function (root) {
+  'use strict';
+
+  const TYPEN = ['RTW', 'KTW', 'NEF'];
+  const CODE_ZEICHEN = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+  function rng(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function neuerCode(vorhanden, zufall) {
+    const r = zufall || Math.random;
+    for (;;) {
+      let c = '';
+      for (let i = 0; i < 6; i++) c += CODE_ZEICHEN[Math.floor(r() * CODE_ZEICHEN.length)];
+      if (!vorhanden.has(c)) { vorhanden.add(c); return c; }
+    }
+  }
+
+  function uid(prefix) {
+    return prefix + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
+  }
+
+  function zeitZuMin(t) { const [h, m] = String(t).split(':').map(Number); return h * 60 + (m || 0); }
+  function minZuZeit(m) {
+    m = ((Math.round(m) % 1440) + 1440) % 1440;
+    return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+  }
+
+  function standardEinstellungen() {
+    return {
+      titel: 'SimTag 2027',
+      datum: '2027-06-26',
+      ort: 'LAFP NRW, Schloß Holte-Stukenbrock',
+      durchgaenge: [
+        { id: 'D1', start: '08:00', ende: '10:00' },
+        { id: 'D2', start: '10:15', ende: '12:15' },
+        { id: 'D3', start: '13:00', ende: '14:45' },
+        { id: 'D4', start: '15:15', ende: '17:00' }
+      ],
+      stationen: [
+        { id: 'S1', name: 'Verkehrsunfall', kurz: 'VU', x: 0.22, y: 0.30, patienten: 10 },
+        { id: 'S2', name: 'Zugriff (SEK)', kurz: 'SEK', x: 0.52, y: 0.18, patienten: 10 },
+        { id: 'S3', name: 'Explosion/Brand', kurz: 'Brand', x: 0.80, y: 0.32, patienten: 12 },
+        { id: 'S4', name: 'Esoterik-Seminar', kurz: 'Eso', x: 0.70, y: 0.70, patienten: 25 },
+        { id: 'S5', name: 'Zeltlager', kurz: 'Zelt', x: 0.30, y: 0.72, patienten: 15 }
+      ],
+      bereitstellung: { x: 0.50, y: 0.48 },
+      eingang: { x: 0.08, y: 0.50 },
+      besatzung: { RTW: [2, 3], KTW: [2, 3], NEF: [1, 2] },
+      ersteWelle: 3,          // die ersten n Fahrzeuge je Station zählen als ersteintreffend
+      nefPosition: 4,         // NEF wird als n-tes Fahrzeug alarmiert
+      alarmRaster: [0, 3, 3, 5, 8, 8, 10, 12, 12, 15, 15, 18, 18, 20, 22, 24],
+      anfahrtMin: 2,
+      schminkenVorher: 45,
+      treffenVorher: 15,
+      nurEingecheckte: false,
+      orgaPasswort: 'simtag2027',
+      seed: 2027
+    };
+  }
+
+  function leererZustand() {
+    return { version: 1, einstellungen: standardEinstellungen(), personen: [], fahrzeuge: [], plan: null, log: [] };
+  }
+
+  /* ---------- Wachen ---------- */
+
+  // Teilnehmende 3. LJ auf Wachen verteilen (eine Wache je Station). Klassen bleiben möglichst zusammen.
+  function wachenKapazitaet(zustand) {
+    const e = zustand.einstellungen, S = e.stationen.length, cap = Array(S).fill(0);
+    zustand.fahrzeuge.forEach(f => { if (f.wache && f.status !== 'abgemeldet' && f.status !== 'defekt') cap[f.wache - 1] += e.besatzung[f.typ][1]; });
+    return cap.map(c => c || 1);
+  }
+
+  // Sollgröße je Wache: anteilig zu den Sitzplätzen der Wache (Methode des größten Rests)
+  function sollGroessen(n, cap) {
+    const summe = cap.reduce((a, b) => a + b, 0);
+    const roh = cap.map(c => n * c / summe), soll = roh.map(Math.floor);
+    let rest = n - soll.reduce((a, b) => a + b, 0);
+    roh.map((v, i) => [v - Math.floor(v), i]).sort((a, b) => b[0] - a[0]).forEach(([, i]) => { if (rest > 0) { soll[i]++; rest--; } });
+    return soll;
+  }
+
+  // Teilnehmende 3. LJ auf Wachen verteilen (eine Wache je Station), anteilig zu den Sitzplätzen.
+  // Klassen bleiben möglichst zusammen. nurOhneWache: nur Neue einsortieren, Bestehende bleiben.
+  function wachenVerteilen(zustand, nurOhneWache) {
+    const e = zustand.einstellungen, S = e.stationen.length;
+    const tn = zustand.personen.filter(p => p.lj === 3 && aktiv(p, e));
+    const cap = wachenKapazitaet(zustand);
+    const soll = sollGroessen(tn.length, cap);
+    const ok = p => p.wache >= 1 && p.wache <= S;
+    if (!nurOhneWache) {
+      tn.sort((a, b) => (a.klasse || '').localeCompare(b.klasse || '') || a.name.localeCompare(b.name));
+      let w = 0, n = 0;
+      tn.forEach(p => { while (w < S - 1 && n >= soll[w]) { w++; n = 0; } p.wache = w + 1; n++; });
+      return;
+    }
+    const zaehl = Array(S).fill(0);
+    tn.forEach(p => { if (ok(p)) zaehl[p.wache - 1]++; });
+    tn.filter(p => !ok(p)).forEach(p => {
+      let w = 0; for (let i = 1; i < S; i++) if (zaehl[i] - soll[i] < zaehl[w] - soll[w]) w = i;
+      p.wache = w + 1; zaehl[w]++;
+    });
+  }
+
+  // Wachen ausgleichen, wenn Fahrzeuge oder Leute am Tag wegfallen: verschiebt so wenige Personen wie nötig.
+  function wachenAusgleichen(zustand) {
+    const e = zustand.einstellungen, S = e.stationen.length;
+    const tn = zustand.personen.filter(p => p.lj === 3 && aktiv(p, e) && p.wache >= 1 && p.wache <= S);
+    const soll = sollGroessen(tn.length, wachenKapazitaet(zustand));
+    const je = Array.from({ length: S }, (_, i) => tn.filter(p => p.wache === i + 1));
+    let verschoben = 0;
+    for (;;) {
+      let hi = 0, lo = 0;
+      for (let i = 1; i < S; i++) { if (je[i].length - soll[i] > je[hi].length - soll[hi]) hi = i; if (je[i].length - soll[i] < je[lo].length - soll[lo]) lo = i; }
+      if (je[hi].length - soll[hi] <= 0 || je[lo].length - soll[lo] >= 0) break;
+      const p = je[hi].pop(); p.wache = lo + 1; je[lo].push(p); verschoben++;
+    }
+    return verschoben;
+  }
+
+  // Fahrzeuge gleichmäßig nach Typ auf Wachen verteilen, Funkrufname vergeben.
+  function fahrzeugWacheWaehlen(zustand, fz) {
+    const S = zustand.einstellungen.stationen.length;
+    const zaehl = Array(S).fill(0), gesamt = Array(S).fill(0);
+    zustand.fahrzeuge.forEach(f => {
+      if (f === fz || !f.wache || f.status === 'abgemeldet') return;
+      gesamt[f.wache - 1]++;
+      if (f.typ === fz.typ) zaehl[f.wache - 1]++;
+    });
+    let w = 0;
+    for (let i = 1; i < S; i++) if (zaehl[i] < zaehl[w] || (zaehl[i] === zaehl[w] && gesamt[i] < gesamt[w])) w = i;
+    return w + 1;
+  }
+
+  function funkrufnameVergeben(zustand, fz) {
+    const belegt = new Set(zustand.fahrzeuge.filter(f => f !== fz && f.wache === fz.wache && f.typ === fz.typ).map(f => f.nr));
+    let n = 1; while (belegt.has(n)) n++;
+    fz.nr = n;
+    fz.funkrufname = fz.wache + '-' + fz.typ + '-' + n;
+  }
+
+  function fahrzeugHinzufuegen(zustand, daten) {
+    const fz = {
+      id: uid('f'), typ: daten.typ, kennzeichen: (daten.kennzeichen || '').trim().toUpperCase(),
+      traeger: (daten.traeger || '').trim(), status: daten.status || 'da',
+      registriert: daten.registriert || new Date().toISOString()
+    };
+    fz.wache = daten.wache || fahrzeugWacheWaehlen(zustand, fz);
+    zustand.fahrzeuge.push(fz);
+    funkrufnameVergeben(zustand, fz);
+    return fz;
+  }
+
+  /* ---------- Planung ---------- */
+
+  function aktiv(p, e) {
+    if (p.status === 'abgemeldet' || p.status === 'krank') return false;
+    if (e.nurEingecheckte) return !!p.eingecheckt;
+    return true;
+  }
+
+  function leereStatistik() { return { einsaetze: 0, erste: 0, nef: 0, fahrer: 0, pause: 0, fahrzeuge: {} }; }
+
+  function statistikAus(plan, bisIndex) {
+    const st = {};
+    const g = id => (st[id] || (st[id] = leereStatistik()));
+    (plan ? plan.durchgaenge : []).slice(0, bisIndex).forEach(d => {
+      d.einsaetze.forEach(e => e.fahrzeuge.forEach(f => f.besatzung.forEach(pid => {
+        const s = g(pid); s.einsaetze++;
+        if (f.erste) s.erste++;
+        if (f.typ === 'NEF') s.nef++;
+        if (f.fahrer === pid) s.fahrer++;
+        s.fahrzeuge[f.fid] = (s.fahrzeuge[f.fid] || 0) + 1;
+      })));
+      d.einsaetze.forEach(e => e.pause.forEach(pid => g(pid).pause++));
+    });
+    return st;
+  }
+
+  function rotiere(arr, k) { if (!arr.length) return arr; k = ((k % arr.length) + arr.length) % arr.length; return arr.slice(k).concat(arr.slice(0, k)); }
+
+  function alarmMinute(e, pos) {
+    const r = e.alarmRaster;
+    if (pos < r.length) return r[pos];
+    return r[r.length - 1] + 2 * (pos - r.length + 1);
+  }
+
+  // Plant einen Durchgang für eine Wache. Liefert {fahrzeuge:[...], pause:[...], hinweise:[...]}
+  function planeWache(zustand, dIndex, wache, station, statistik, zufall) {
+    const e = zustand.einstellungen;
+    const leute = zustand.personen.filter(p => p.lj === 3 && p.wache === wache && aktiv(p, e));
+    const fzAlle = zustand.fahrzeuge.filter(f => f.wache === wache && f.status !== 'abgemeldet' && f.status !== 'defekt');
+    const hinweise = [];
+    const g = id => (statistik[id] || (statistik[id] = leereStatistik()));
+
+    // Reihenfolge: RTW/KTW rotieren je Durchgang, damit jedes Fahrzeug mal vorne fährt; NEF an fester Position.
+    const boden = fzAlle.filter(f => f.typ !== 'NEF').sort((a, b) => (a.typ === b.typ ? a.nr - b.nr : (a.typ === 'RTW' ? -1 : 1)));
+    const nefs = fzAlle.filter(f => f.typ === 'NEF').sort((a, b) => a.nr - b.nr);
+    const schritt = Math.max(1, Math.ceil(boden.length / Math.max(1, e.durchgaenge.length)));
+    const reihe = rotiere(boden, dIndex * schritt);
+    const nefsR = rotiere(nefs, dIndex);
+    nefsR.forEach((n, i) => reihe.splice(Math.min(reihe.length, e.nefPosition - 1 + i * 4), 0, n));
+
+    // Besatzungsstärke festlegen
+    const min = f => e.besatzung[f.typ][0], max = f => e.besatzung[f.typ][1];
+    let fahrzeuge = reihe.slice();
+    let N = leute.length;
+    while (fahrzeuge.length && fahrzeuge.reduce((s, f) => s + min(f), 0) > N) {
+      // hinterstes Fahrzeug bleibt unbesetzt (NEF zuletzt streichen)
+      let idx = fahrzeuge.length - 1;
+      while (idx > 0 && fahrzeuge[idx].typ === 'NEF') idx--;
+      hinweise.push(fahrzeuge[idx].funkrufname + ' bleibt unbesetzt (zu wenig Teilnehmende)');
+      fahrzeuge.splice(idx, 1);
+    }
+    const groesse = fahrzeuge.map(min);
+    let rest = N - groesse.reduce((s, x) => s + x, 0);
+    // Zusätzliche Plätze zuerst auf RTW/KTW in Alarmreihenfolge, dann NEF
+    for (const nurBoden of [true, false]) {
+      for (let i = 0; i < fahrzeuge.length && rest > 0; i++) {
+        if (nurBoden && fahrzeuge[i].typ === 'NEF') continue;
+        if (groesse[i] < max(fahrzeuge[i])) { groesse[i]++; rest--; }
+      }
+    }
+    const plaetze = groesse.reduce((s, x) => s + x, 0);
+
+    // Wer pausiert? Die mit den meisten Einsätzen bisher (Zufall bei Gleichstand)
+    const los = new Map(leute.map(p => [p.id, zufall()]));
+    let kandidaten = leute.slice().sort((a, b) =>
+      (g(a.id).einsaetze - g(b.id).einsaetze) || (Math.min(g(a.id).erste, 1) - Math.min(g(b.id).erste, 1)) || (g(b.id).pause - g(a.id).pause) || (los.get(a.id) - los.get(b.id)));
+    const pause = kandidaten.slice(plaetze).map(p => p.id);
+    kandidaten = kandidaten.slice(0, plaetze);
+
+    // Plätze bilden und nach Seltenheit füllen: erste Welle, dann NEF, dann übrige
+    const ergebnis = fahrzeuge.map((f, i) => ({
+      fid: f.id, funkrufname: f.funkrufname, typ: f.typ, kennzeichen: f.kennzeichen, traeger: f.traeger,
+      reihenfolge: i + 1, minute: alarmMinute(e, i), erste: i < e.ersteWelle, besatzung: [], fahrer: null
+    }));
+    const slots = [];
+    ergebnis.forEach((f, i) => { for (let k = 0; k < groesse[i]; k++) slots.push(f); });
+    const rang = f => (f.erste ? 0 : f.typ === 'NEF' ? 1 : 2);
+    slots.sort((a, b) => rang(a) - rang(b) || a.reihenfolge - b.reihenfolge);
+
+    const frei = new Set(kandidaten.map(p => p.id));
+    const person = new Map(leute.map(p => [p.id, p]));
+    for (const f of slots) {
+      let best = null, bestK = Infinity;
+      for (const pid of frei) {
+        const s = g(pid);
+        let k = 0;
+        if (f.erste) k += 100 * s.erste;               // erste Welle: wer am seltensten vorne war
+        if (f.typ === 'NEF') k += 100 * s.nef;          // NEF: wer am seltensten NEF hatte
+        if (!f.erste && s.erste === 0) k += 40;       // Leute ohne erste Welle für spätere Durchgänge aufheben
+        if (f.typ !== 'NEF' && s.nef === 0) k += 5;    // Leute ohne NEF bevorzugt für NEF aufheben
+        k += 15 * (s.fahrzeuge[f.fid] || 0);           // nicht immer dasselbe Fahrzeug
+        k += los.get(pid);
+        if (k < bestK) { bestK = k; best = pid; }
+      }
+      if (best == null) break;
+      frei.delete(best);
+      f.besatzung.push(best);
+    }
+
+    // Fahrer: möglichst vom Träger des Fahrzeugs, sonst wer am seltensten gefahren ist
+    ergebnis.forEach(f => {
+      if (!f.besatzung.length) return;
+      const eigene = f.besatzung.filter(pid => norm(person.get(pid).traeger) === norm(f.traeger));
+      const pool = eigene.length ? eigene : f.besatzung;
+      pool.sort((a, b) => g(a).fahrer - g(b).fahrer || los.get(a) - los.get(b));
+      f.fahrer = pool[0];
+      f.fahrerFremd = !eigene.length;
+      // Fahrer an erste Stelle
+      f.besatzung = [f.fahrer].concat(f.besatzung.filter(x => x !== f.fahrer));
+    });
+
+    // Statistik fortschreiben
+    ergebnis.forEach(f => f.besatzung.forEach(pid => {
+      const s = g(pid); s.einsaetze++; if (f.erste) s.erste++; if (f.typ === 'NEF') s.nef++;
+      if (f.fahrer === pid) s.fahrer++; s.fahrzeuge[f.fid] = (s.fahrzeuge[f.fid] || 0) + 1;
+    }));
+    pause.forEach(pid => g(pid).pause++);
+
+    return { wache, station, fahrzeuge: ergebnis.filter(f => f.besatzung.length), pause, hinweise };
+  }
+
+  function norm(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9äöüß]/g, ''); }
+
+  function stationFuer(gruppe, dIndex, S) { return ((gruppe - 1 + dIndex) % S + S) % S; }
+
+  // Gruppen (A, B, …) für 2. und 1. LJ
+  function gruppenVerteilen(zustand, lj) {
+    const S = zustand.einstellungen.stationen.length;
+    const liste = zustand.personen.filter(p => p.lj === lj)
+      .sort((a, b) => (a.klasse || '').localeCompare(b.klasse || '') || a.name.localeCompare(b.name));
+    const ziel = Math.ceil(liste.length / S) || 1;
+    liste.forEach((p, i) => { p.gruppe = Math.min(S, Math.floor(i / ziel) + 1); });
+  }
+
+  // Ganzer Plan oder ab Durchgang `abIndex` neu (frühere Durchgänge bleiben unverändert)
+  function planen(zustand, abIndex) {
+    const e = zustand.einstellungen;
+    const S = e.stationen.length;
+    abIndex = Math.max(0, abIndex || 0);
+    if (!zustand.plan || abIndex === 0) abIndex = 0;
+    if (zustand.personen.some(p => p.lj === 3 && !(p.wache >= 1 && p.wache <= S))) wachenVerteilen(zustand, true);
+    if (abIndex > 0) wachenAusgleichen(zustand);
+    [2, 1].forEach(lj => { if (zustand.personen.some(p => p.lj === lj && !(p.gruppe >= 1 && p.gruppe <= S))) gruppenVerteilen(zustand, lj); });
+
+    const alt = zustand.plan;
+    const statistik = statistikAus(alt, abIndex);
+    const durchgaenge = [];
+    e.durchgaenge.forEach((d, di) => {
+      if (di < abIndex && alt && alt.durchgaenge[di]) { durchgaenge.push(alt.durchgaenge[di]); return; }
+      const zufall = rng((e.seed || 1) * 31 + di * 7919 + (zustand.planZaehler || 0));
+      const einsaetze = [];
+      for (let w = 1; w <= S; w++) {
+        const st = e.stationen[stationFuer(w, di, S)];
+        einsaetze.push(planeWache(zustand, di, w, st.id, statistik, zufall));
+      }
+      const mimen = {}, zuschauer = {};
+      for (let gr = 1; gr <= S; gr++) {
+        mimen[e.stationen[stationFuer(gr, di, S)].id] = gr;
+        zuschauer[e.stationen[stationFuer(gr + 2, di, S)].id] = gr;
+      }
+      durchgaenge.push({ id: d.id, einsaetze, mimen, zuschauer });
+    });
+    zustand.planZaehler = (zustand.planZaehler || 0) + 1;
+    zustand.plan = { erstellt: new Date().toISOString(), abIndex, durchgaenge, fingerabdruck: fingerabdruck(zustand) };
+    return zustand.plan;
+  }
+
+  // Erkennt, ob sich Fahrzeuge oder Teilnehmende seit der Planung geändert haben
+  function fingerabdruck(zustand) {
+    const e = zustand.einstellungen;
+    const p = zustand.personen.filter(x => x.lj === 3 && aktiv(x, e)).map(x => x.id + ':' + x.wache).sort().join(',');
+    const f = zustand.fahrzeuge.filter(x => x.status !== 'abgemeldet' && x.status !== 'defekt').map(x => x.id + ':' + x.wache).sort().join(',');
+    return hash(p + '|' + f + '|' + JSON.stringify([e.besatzung, e.ersteWelle, e.nefPosition, e.stationen.length, e.durchgaenge.length]));
+  }
+  function hash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); }
+  function planVeraltet(zustand) { return !zustand.plan || zustand.plan.fingerabdruck !== fingerabdruck(zustand); }
+
+  // Index des Durchgangs, der zur Uhrzeit (Minuten) läuft oder als nächstes kommt
+  function aktuellerDurchgang(e, minute) {
+    for (let i = 0; i < e.durchgaenge.length; i++) if (minute < zeitZuMin(e.durchgaenge[i].ende)) return i;
+    return e.durchgaenge.length;
+  }
+
+  /* ---------- Auswertung ---------- */
+
+  function gerechtigkeit(zustand) {
+    const st = statistikAus(zustand.plan, zustand.plan ? zustand.plan.durchgaenge.length : 0);
+    const tn = zustand.personen.filter(p => p.lj === 3 && aktiv(p, zustand.einstellungen));
+    const werte = k => tn.map(p => (st[p.id] || leereStatistik())[k]);
+    const verteilung = arr => { const m = {}; arr.forEach(v => { m[v] = (m[v] || 0) + 1; }); return m; };
+    return {
+      anzahl: tn.length,
+      einsaetze: verteilung(werte('einsaetze')),
+      erste: verteilung(werte('erste')),
+      nef: verteilung(werte('nef')),
+      ohneErste: tn.filter(p => !(st[p.id] && st[p.id].erste)).map(p => p.id),
+      statistik: st
+    };
+  }
+
+  function kapazitaet(zustand) {
+    const e = zustand.einstellungen;
+    const fz = zustand.fahrzeuge.filter(f => f.status !== 'abgemeldet' && f.status !== 'defekt');
+    const anz = t => fz.filter(f => f.typ === t).length;
+    const min = TYPEN.reduce((s, t) => s + anz(t) * e.besatzung[t][0], 0);
+    const max = TYPEN.reduce((s, t) => s + anz(t) * e.besatzung[t][1], 0);
+    const tn = zustand.personen.filter(p => p.lj === 3 && aktiv(p, e)).length;
+    const ersteSitze = e.stationen.length * e.durchgaenge.length * e.ersteWelle * e.besatzung.RTW[1];
+    return { RTW: anz('RTW'), KTW: anz('KTW'), NEF: anz('NEF'), min, max, tn, ersteSitze };
+  }
+
+  // Persönlicher Plan einer Person
+  function persoenlicherPlan(zustand, pid) {
+    const e = zustand.einstellungen, p = zustand.personen.find(x => x.id === pid);
+    if (!p) return null;
+    const station = id => e.stationen.find(s => s.id === id);
+    const name = id => { const q = zustand.personen.find(x => x.id === id); return q ? q.name : '?'; };
+    const zeilen = [];
+    (zustand.plan ? zustand.plan.durchgaenge : []).forEach((d, di) => {
+      const dg = e.durchgaenge[di]; if (!dg) return;
+      const start = zeitZuMin(dg.start);
+      if (p.lj === 3) {
+        let z = null;
+        d.einsaetze.forEach(ei => {
+          ei.fahrzeuge.forEach(f => {
+            if (f.besatzung.includes(pid)) z = {
+              art: 'einsatz', station: station(ei.station), wache: ei.wache, funkrufname: f.funkrufname, typ: f.typ,
+              kennzeichen: f.kennzeichen, traeger: f.traeger, rolle: f.fahrer === pid ? 'Fahrer:in' : 'Besatzung',
+              erste: f.erste, reihenfolge: f.reihenfolge, alarm: minZuZeit(start + f.minute),
+              team: f.besatzung.filter(x => x !== pid).map(name)
+            };
+          });
+          if (ei.pause.includes(pid)) z = { art: 'pause', station: station(ei.station), wache: ei.wache };
+        });
+        zeilen.push(Object.assign({ durchgang: di + 1, von: dg.start, bis: dg.ende }, z || { art: 'frei' }));
+      } else {
+        const tab = p.lj === 2 ? d.mimen : d.zuschauer;
+        const sid = Object.keys(tab).find(k => tab[k] === p.gruppe);
+        zeilen.push({
+          durchgang: di + 1, von: dg.start, bis: dg.ende, art: p.lj === 2 ? 'mime' : 'zuschauen', station: station(sid),
+          schminken: minZuZeit(start - e.schminkenVorher), treffen: minZuZeit(start - e.treffenVorher)
+        });
+      }
+    });
+    return { person: p, zeilen };
+  }
+
+
+  /* ---------- Datenschutz: was ohne Orga-Zugang sichtbar ist ---------- */
+
+  // Öffentliche Sicht: keine Namen, keine Codes. Besatzungen nur als Anzahl.
+  function oeffentlich(zustand) {
+    const e = Object.assign({}, zustand.einstellungen); delete e.orgaPasswort;
+    const plan = zustand.plan ? {
+      erstellt: zustand.plan.erstellt,
+      durchgaenge: zustand.plan.durchgaenge.map(d => ({
+        id: d.id, mimen: d.mimen, zuschauer: d.zuschauer,
+        einsaetze: d.einsaetze.map(ei => ({
+          wache: ei.wache, station: ei.station, pause: ei.pause.length, hinweise: ei.hinweise,
+          fahrzeuge: ei.fahrzeuge.map(f => Object.assign({}, f, { besatzung: f.besatzung.length, fahrer: null }))
+        }))
+      }))
+    } : null;
+    const lj = n => zustand.personen.filter(p => p.lj === n && p.status !== 'abgemeldet');
+    const zaehl = n => ({ gesamt: lj(n).length, da: lj(n).filter(p => p.eingecheckt).length });
+    const gruppen = {};
+    [2, 1].forEach(n => { gruppen[n] = {}; lj(n).forEach(p => { gruppen[n][p.gruppe] = (gruppen[n][p.gruppe] || 0) + 1; }); });
+    return {
+      version: zustand.version, demo: !!zustand.demo, einstellungen: e, plan, gruppen,
+      zaehlung: { 3: zaehl(3), 2: zaehl(2), 1: zaehl(1) },
+      fahrzeuge: zustand.fahrzeuge.map(f => ({ id: f.id, typ: f.typ, funkrufname: f.funkrufname, kennzeichen: f.kennzeichen, traeger: f.traeger, wache: f.wache, status: f.status }))
+    };
+  }
+
+  function findeCode(zustand, code) {
+    code = String(code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    return code.length >= 4 ? zustand.personen.find(p => p.code === code) || null : null;
+  }
+
+  // Persönliche Sicht über den Code
+  function meinPlan(zustand, code) {
+    const p = findeCode(zustand, code);
+    if (!p) return null;
+    const pp = persoenlicherPlan(zustand, p.id);
+    return { name: p.name, klasse: p.klasse, lj: p.lj, wache: p.wache, gruppe: p.gruppe, eingecheckt: p.eingecheckt, status: p.status, zeilen: pp.zeilen };
+  }
+
+  function einchecken(zustand, code, jetzt) {
+    const p = findeCode(zustand, code);
+    if (!p) return null;
+    const neu = !p.eingecheckt;
+    if (neu) p.eingecheckt = jetzt || new Date().toISOString();
+    if (p.status === 'abgemeldet' || p.status === 'krank') p.status = 'angemeldet';
+    return { name: p.name, lj: p.lj, eingecheckt: p.eingecheckt, neu };
+  }
+
+  const api = {
+    TYPEN, rng, neuerCode, uid, zeitZuMin, minZuZeit, standardEinstellungen, leererZustand,
+    wachenVerteilen, wachenAusgleichen, gruppenVerteilen, fahrzeugHinzufuegen, fahrzeugWacheWaehlen, funkrufnameVergeben,
+    planen, planVeraltet, fingerabdruck, aktuellerDurchgang, gerechtigkeit, kapazitaet, persoenlicherPlan,
+    statistikAus, stationFuer, aktiv, norm, oeffentlich, findeCode, meinPlan, einchecken
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.SimCore = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>
+/* Erfundene Beispieldaten – keine echten Personen. */
+(function (root) {
+  'use strict';
+  function demoZustand(Core) {
+    const z = Core.leererZustand();
+    const r = Core.rng(4711);
+    const pick = a => a[Math.floor(r() * a.length)];
+    const vor = ['Lena','Jonas','Mia','Paul','Emma','Finn','Lea','Ben','Hannah','Luca','Sophie','Elias','Marie','Noah','Lina','Tim','Clara','Jan','Anna','Moritz','Laura','Felix','Johanna','Nils','Greta','Tom','Ida','Lukas','Pia','Max','Nora','Erik','Frieda','Ole','Thea','Jakob','Carla','Henrik','Merle','David'];
+    const nach = ['Brinkmann','Wessel','Kötter','Meier','Schröder','Hagedorn','Lohmann','Tiemann','Bökamp','Strothmann','Höner','Pieper','Wiemann','Kleinesudeik','Sudbrock','Upmeier','Brune','Diekmann','Ostermann','Vahle','Bergmann','Koch','Lückemeier','Niehaus','Rahe','Thiele','Venker','Wöstmann','Ahlers','Busche'];
+    const traeger = ['BF Bielefeld','Kreis Gütersloh','Kreis Herford','Kreis Lippe','Kreis Höxter','Kreis Soest','BF Hamm','BF Münster','FW Herford','Rettungsdienst gGmbH','BIEKRA','FW Düsseldorf'];
+    const codes = new Set();
+    const klassen3 = ['24A','24B','24C','24D','24E','24F','24G'];
+    const klassen2 = ['25A','25B','25C','25D','25E','25F'];
+    const klassen1 = ['26A','26B','26C','26D','26E'];
+    const benutzt = new Set();
+    const name = () => { for (;;) { const n = pick(vor) + ' ' + pick(nach); if (!benutzt.has(n)) { benutzt.add(n); return n; } } };
+    const add = (lj, klassen, n) => { for (let i = 0; i < n; i++) z.personen.push({ id: Core.uid('p'), name: name(), klasse: klassen[i % klassen.length], lj, traeger: pick(traeger), code: Core.neuerCode(codes, r), eingecheckt: null, status: 'angemeldet' }); };
+    add(3, klassen3, 170); add(2, klassen2, 110); add(1, klassen1, 90);
+    const kz = { 'BF Bielefeld':'BI-FW', 'Kreis Gütersloh':'GT-RD', 'Kreis Herford':'HF-RD', 'Kreis Lippe':'LIP-BS', 'Kreis Höxter':'HX-KL', 'Kreis Soest':'SO-RD', 'BF Hamm':'HAM-FW', 'BF Münster':'MS-FW', 'FW Herford':'HF-BF', 'Rettungsdienst gGmbH':'BI-RD', 'BIEKRA':'BI-KT', 'FW Düsseldorf':'D-US' };
+    const fz = (typ, n) => { for (let i = 0; i < n; i++) { const t = pick(traeger); Core.fahrzeugHinzufuegen(z, { typ, traeger: t, kennzeichen: kz[t] + ' ' + (100 + Math.floor(r() * 900)), registriert: null, status: 'gemeldet' }); } };
+    fz('RTW', 32); fz('KTW', 6); fz('NEF', 10);
+    Core.wachenVerteilen(z, false); Core.gruppenVerteilen(z, 2); Core.gruppenVerteilen(z, 1);
+    Core.planen(z, 0);
+    z.demo = true;
+    return z;
+  }
+  if (typeof module !== 'undefined' && module.exports) module.exports = demoZustand; else root.demoZustand = demoZustand;
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>
+/* SimTag Dienstplan – Oberfläche */
+(function () {
+  'use strict';
+  const C = window.SimCore;
+  const $ = (s, el) => (el || document).querySelector(s);
+  const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const ls = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* egal */ } },
+    del(k) { try { localStorage.removeItem(k); } catch (e) { /* egal */ } }
+  };
+  const ss = {
+    get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { /* egal */ } },
+    del(k) { try { sessionStorage.removeItem(k); } catch (e) { /* egal */ } }
+  };
+
+  /* ================= Datenhaltung ================= */
+  // Zwei Betriebsarten mit gleicher Schnittstelle:
+  //  server – eigener Node-Server (api/…), Namen verlassen den Server nur mit Orga-Schlüssel oder eigenem Code
+  //  demo   – alles im Browser (erfundene Beispieldaten)
+  const DEMO_KEY = 'simtag2027-demo-v1';
+  const DEMO_PASSWORT = 'simtag2027';
+  const Store = {
+    modus: 'demo', schluessel: null, hoerer: [], demoZ: null,
+    async init() {
+      if (/^https?:$/.test(location.protocol) && !window.SIMTAG_DEMO) {
+        try {
+          const r = await fetch('api/info', { cache: 'no-store' });
+          if (r.ok) { const j = await r.json(); if (j && j.simtag) { this.modus = 'server'; } }
+        } catch (e) { /* kein Server: Demo */ }
+      }
+      if (this.modus === 'server') {
+        this.schluessel = ss.get('simtag-orga');
+        try {
+          const ev = new EventSource('api/events');
+          ev.onmessage = () => this.melden();
+        } catch (e) { setInterval(() => this.melden(), 15000); }
+      } else {
+        this.ladeDemo();
+        this.schluessel = ss.get('simtag-orga-demo');
+        window.addEventListener('storage', e => { if (e.key === DEMO_KEY) { this.ladeDemo(); this.melden(); } });
+      }
+    },
+    ladeDemo() {
+      const roh = ls.get(DEMO_KEY);
+      try { this.demoZ = roh ? JSON.parse(roh) : null; } catch (e) { this.demoZ = null; }
+      if (!this.demoZ || !this.demoZ.einstellungen) { this.demoZ = window.demoZustand(C); this.speichereDemo(); }
+    },
+    speichereDemo() { ls.set(DEMO_KEY, JSON.stringify(this.demoZ)); },
+    demoZuruecksetzen() { this.demoZ = window.demoZustand(C); this.speichereDemo(); this.melden(); },
+    melden() { this.hoerer.forEach(f => f()); },
+    abonnieren(f) { this.hoerer.push(f); },
+    get orga() { return !!this.schluessel; },
+
+    async api(pfad, opt) {
+      opt = opt || {};
+      const kopf = { 'Content-Type': 'application/json' };
+      if (this.schluessel) kopf['X-Orga-Key'] = this.schluessel;
+      const r = await fetch('api/' + pfad, { method: opt.method || 'GET', headers: kopf, body: opt.body ? JSON.stringify(opt.body) : undefined, cache: 'no-store' });
+      let j = null; try { j = await r.json(); } catch (e) { /* leer */ }
+      if (!r.ok) { const err = new Error((j && j.fehler) || ('Fehler ' + r.status)); err.status = r.status; throw err; }
+      return j;
+    },
+    async oeffentlich() { return this.modus === 'server' ? this.api('public') : C.oeffentlich(this.demoZ); },
+    async mein(code) { return this.modus === 'server' ? this.api('me?code=' + encodeURIComponent(code)) : C.meinPlan(this.demoZ, code); },
+    async einchecken(code) {
+      if (this.modus === 'server') return this.api('checkin', { method: 'POST', body: { code } });
+      const r = C.einchecken(this.demoZ, code); if (r) { this.demoZ.version++; this.speichereDemo(); this.melden(); } return r;
+    },
+    async anmelden(pw) {
+      if (this.modus === 'server') { await this.api('login', { method: 'POST', body: { passwort: pw } }).catch(e => { throw e; }); this.schluessel = pw; ss.set('simtag-orga', pw); return true; }
+      if (pw !== DEMO_PASSWORT) throw new Error('Passwort stimmt nicht.');
+      this.schluessel = pw; ss.set('simtag-orga-demo', pw); return true;
+    },
+    abmelden() { this.schluessel = null; ss.del('simtag-orga'); ss.del('simtag-orga-demo'); },
+    async voll() { return this.modus === 'server' ? this.api('state') : JSON.parse(JSON.stringify(this.demoZ)); },
+    // Änderung als Funktion: wird bei gleichzeitigen Änderungen (z. B. Check-ins) auf dem neuesten Stand wiederholt
+    async aendern(fn) {
+      for (let versuch = 0; versuch < 4; versuch++) {
+        const z = await this.voll();
+        const basis = z.version;
+        const ergebnis = fn(z);
+        z.version = basis + 1;
+        if (this.modus !== 'server') { this.demoZ = z; this.speichereDemo(); this.melden(); return ergebnis; }
+        try { await this.api('state', { method: 'POST', body: { basis, zustand: z } }); this.melden(); return ergebnis; }
+        catch (e) { if (e.status !== 409) throw e; }
+      }
+      throw new Error('Die Daten wurden gerade von jemand anderem geändert. Bitte noch einmal versuchen.');
+    }
+  };
+
+  /* ================= Zustand der Oberfläche ================= */
+  const ui = {
+    route: 'plan', code: ls.get('simtag-code') || '', station: 'S1', orgaTab: 'lage', planD: 0,
+    filterLj: 3, suche: '', simZeit: null, ziehen: null, fzTyp: 'RTW', meldung: null
+  };
+  let pub = null, voll = null, mein = null;
+
+  function jetztMin() {
+    if (ui.simZeit != null) return ui.simZeit;
+    const d = new Date(); return d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60;
+  }
+  function toast(t) {
+    const el = document.createElement('div'); el.className = 'toast'; el.textContent = t; el.setAttribute('role', 'status');
+    document.body.appendChild(el); setTimeout(() => el.remove(), 3200);
+  }
+  function datei(name, inhalt, typ) {
+    try {
+      const url = URL.createObjectURL(new Blob([inhalt], { type: typ || 'text/plain' }));
+      const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
+    } catch (e) { toast('Download ist hier nicht möglich.'); }
+  }
+  const kz = k => k ? '<span class="kz"><b>' + esc(k) + '</b></span>' : '<span class="leise">ohne Kennzeichen</span>';
+  const typ = t => '<span class="typ ' + esc(t) + '">' + esc(t) + '</span>';
+  const station = (e, id) => e.stationen.find(s => s.id === id) || { id, name: id, kurz: id };
+  const ljName = { 3: '3. Ausbildungsjahr', 2: '2. Ausbildungsjahr', 1: '1. Ausbildungsjahr' };
+  const ljRolle = { 3: 'Besatzung RTW/KTW/NEF', 2: 'Verletztendarstellung', 1: 'Reserve und Beobachtung' };
+  const gruppeBuchst = g => String.fromCharCode(64 + (g || 0));
+  const datumLang = d => { try { return new Date(d + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return d; } };
+
+  /* ================= Rahmen ================= */
+  const ROUTEN = [['plan', 'Mein Plan'], ['lage', 'Lagekarte'], ['stationen', 'Stationen'], ['checkin', 'Check-in'], ['orga', 'Orga']];
+  function rahmen(inhalt) {
+    const e = pub.einstellungen;
+    const demo = Store.modus === 'demo' || pub.demo;
+    const zeit = ui.simZeit != null ? ui.simZeit : 622;
+    return '<header class="kopf"><div class="kopf-innen"><div class="marke"><i></i><b>' + esc(e.titel) + '</b><span>' + esc(datumLang(e.datum)) + ' · ' + esc(e.ort) + '</span></div><nav aria-label="Bereiche">' +
+      ROUTEN.map(([id, t]) => '<a href="#' + id + '"' + (ui.route === id ? ' aria-current="page"' : '') + '>' + t + '</a>').join('') + '</nav></div></header>' +
+      (demo ? '<div class="demo-band"><div><span>Demo mit erfundenen Daten. Nichts davon sind echte Personen.</span>' +
+        '<label for="simzeit">Simulierte Uhrzeit <input id="simzeit" type="range" min="420" max="1080" step="1" value="' + Math.round(zeit) + '"> <b class="mono" id="simzeit-text">' + C.minZuZeit(zeit) + '</b></label></div></div>' : '') +
+      '<main id="inhalt">' + inhalt + '</main>';
+  }
+
+  /* ================= Mein Plan ================= */
+  function viewPlan() {
+    const e = pub.einstellungen;
+    let h = '<div class="seitenkopf"><div><div class="eyebrow">Persönlicher Ablauf</div><h1>Mein Plan</h1></div>' +
+      '<p>Gib deinen persönlichen Code ein. Er steht auf deiner Teilnahmekarte.</p></div>';
+    h += '<form class="flaeche" id="code-form"><div class="zeile"><label class="feld" for="code"><span>Dein Code</span>' +
+      '<input id="code" class="code-eingabe" type="text" maxlength="8" autocomplete="off" autocapitalize="characters" value="' + esc(ui.code) + '" placeholder="ABC123"></label>' +
+      '<button class="knopf haupt" type="submit">Plan anzeigen</button>' + (ui.code ? '<button class="knopf" type="button" data-act="code-weg">Code vergessen</button>' : '') + '</div>';
+    if (Store.modus === 'demo') {
+      const z = Store.demoZ, bsp = [3, 2, 1].map(l => z.personen.find(p => p.lj === l && p.status !== 'krank'));
+      h += '<div class="zeile leise">Beispielcodes zum Ausprobieren: ' + bsp.map(p => '<button class="knopf klein" type="button" data-act="bsp" data-code="' + p.code + '">' + p.code + ' · ' + p.lj + '. LJ</button>').join('') + '</div>';
+    }
+    h += '</form>';
+    if (ui.code && mein === false) h += '<div class="hinweis rot">Zu diesem Code gibt es keinen Eintrag. Prüfe die Schreibweise (0 und O, 1 und I gibt es nicht).</div>';
+    if (mein) h += meinAblauf(e, mein);
+    return h;
+  }
+
+  function meinAblauf(e, m) {
+    const jetzt = jetztMin();
+    let h = '<section class="flaeche"><div class="zeile" style="justify-content:space-between"><div><h2>' + esc(m.name) + '</h2><p class="leise">Klasse ' + esc(m.klasse) + ' · ' + ljName[m.lj] + ' · ' + ljRolle[m.lj] +
+      (m.lj === 3 ? ' · Wache ' + m.wache : ' · Gruppe ' + gruppeBuchst(m.gruppe)) + '</p></div>' +
+      (m.eingecheckt ? '<span class="pille gut">Eingecheckt ' + new Date(m.eingecheckt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + '</span>'
+        : '<button class="knopf haupt" data-act="selbst-checkin">Ich bin da</button>') + '</div>';
+    if (m.status === 'krank') h += '<div class="hinweis rot">Du bist als krank gemeldet und nicht eingeplant. Melde dich am Eingang, falls du doch da bist.</div>';
+    h += '<p class="leise">Der Plan kann sich am Tag ändern, wenn Fahrzeuge oder Leute fehlen. Schau vor jedem Durchgang noch einmal hier rein.</p></section>';
+    h += '<div class="ablauf">';
+    m.zeilen.forEach(z => {
+      const lauf = jetzt >= C.zeitZuMin(z.von) && jetzt < C.zeitZuMin(z.bis);
+      const st = z.station || {};
+      let kl = 'block', innen = '';
+      if (z.art === 'einsatz') {
+        if (z.erste) kl += ' erste';
+        innen = '<div class="zeile"><h3>' + esc(st.name) + '</h3>' + (z.erste ? '<span class="pille akzent">Erste Welle</span>' : '') + (lauf ? '<span class="pille gut">läuft</span>' : '') + '</div>' +
+          '<div class="zeile">' + typ(z.typ) + '<span class="frn">' + esc(z.funkrufname) + '</span>' + kz(z.kennzeichen) + '<span class="leise">' + esc(z.traeger) + '</span></div>' +
+          '<div class="alarm">Alarm ca. <b>' + esc(z.alarm) + '</b> <span class="leise">· Fahrzeug ' + z.reihenfolge + ' in der Alarmfolge</span></div>' +
+          '<div><b>' + esc(z.rolle) + '</b>' + (z.team.length ? ' mit ' + z.team.map(esc).join(', ') : ' (allein)') + '</div>';
+      } else if (z.art === 'pause') {
+        kl += ' pause';
+        innen = '<div class="zeile"><h3>Ohne Fahrzeug</h3>' + (lauf ? '<span class="pille gut">läuft</span>' : '') + '</div><div>Du begleitest deine Wache als Beobachter:in an der Station <b>' + esc(st.name) + '</b>. In den anderen Durchgängen fährst du dafür öfter.</div>';
+      } else if (z.art === 'mime') {
+        innen = '<div class="zeile"><h3>' + esc(st.name) + '</h3><span class="pille">Verletztendarstellung</span>' + (lauf ? '<span class="pille gut">läuft</span>' : '') + '</div>' +
+          '<div class="zeile"><span>Schminken <b class="mono">' + esc(z.schminken) + '</b></span><span>Treffen am Einsatzort <b class="mono">' + esc(z.treffen) + '</b></span></div>';
+      } else if (z.art === 'zuschauen') {
+        innen = '<div class="zeile"><h3>' + esc(st.name) + '</h3><span class="pille">Beobachtung, Reserve</span>' + (lauf ? '<span class="pille gut">läuft</span>' : '') + '</div>' +
+          '<div>Treffen an der Station <b class="mono">' + esc(z.treffen) + '</b>. Bleib erreichbar, falls du als Reserve gebraucht wirst.</div>';
+      } else {
+        innen = '<div><h3>Nicht eingeplant</h3><p class="leise">Melde dich bei der Orga.</p></div>';
+      }
+      h += '<article class="' + kl + '"><div class="zeit">' + esc(z.von) + '<small>bis ' + esc(z.bis) + ' · D' + z.durchgang + '</small></div><div>' + innen + '</div></article>';
+    });
+    if (!m.zeilen.length) h += '<div class="hinweis">Der Plan ist noch nicht erstellt.</div>';
+    return h + '</div>';
+  }
+
+  /* ================= Check-in ================= */
+  function viewCheckin() {
+    const url = checkinUrl();
+    let h = '<div class="seitenkopf"><div><div class="eyebrow">Am Eingang</div><h1>Check-in</h1></div><p>Bestätige mit deinem Code, dass du da bist. Erst dann wirst du am Tag fest eingeplant.</p></div>';
+    h += '<form class="flaeche" id="checkin-form"><div class="zeile"><label class="feld" for="checkin-code"><span>Dein Code</span><input id="checkin-code" class="code-eingabe" type="text" maxlength="8" autocomplete="off" value="' + esc(ui.code) + '" placeholder="ABC123"></label>' +
+      '<button class="knopf haupt gross" type="submit">Ich bin da</button></div><div id="checkin-ergebnis">' + (ui.checkinMeldung || '') + '</div></form>';
+    if (Store.orga) h += '<section class="flaeche"><h3>QR-Code für den Eingang</h3><p class="leise">Ausdrucken und am Eingang aufhängen. Er führt direkt auf diese Seite.</p><div class="qr" id="qr-eingang"></div><p class="mono leise">' + esc(url) + '</p></section>';
+    return h;
+  }
+  function checkinUrl() {
+    const basis = location.href.split('#')[0].split('?')[0];
+    return basis + '#checkin';
+  }
+
+  /* ================= Lagekarte ================= */
+  const KW = 1000, KH = 625;
+  function fahrzeugLage(e, plan, t) {
+    // liefert pro Fahrzeug-ID {x,y,zustand,station}
+    const di = C.aktuellerDurchgang(e, t);
+    const br = e.bereitstellung, lage = {};
+    const d = plan && plan.durchgaenge[di], dg = e.durchgaenge[di];
+    if (!d || !dg) return { di, lage };
+    const start = C.zeitZuMin(dg.start), ende = C.zeitZuMin(dg.ende);
+    d.einsaetze.forEach(ei => {
+      const st = station(e, ei.station);
+      ei.fahrzeuge.forEach((f, i) => {
+        const alarm = start + f.minute, an = alarm + (e.anfahrtMin || 2);
+        const ring = (k, n, r) => { const w = (k / Math.max(1, n)) * Math.PI * 2; return [Math.cos(w) * r, Math.sin(w) * r]; };
+        const [ox, oy] = ring(i, ei.fahrzeuge.length, 34 + (i % 2) * 10);
+        const sx = st.x * KW + ox, sy = st.y * KH + oy;
+        const bx = br.x * KW + ((ei.wache - 3) * 26), by = br.y * KH + (i - ei.fahrzeuge.length / 2) * 6;
+        let x = bx, y = by, z = 'bereit';
+        if (t >= ende || t < start - 30) { z = t >= ende ? 'zurueck' : 'bereit'; }
+        else if (t >= an) { x = sx; y = sy; z = 'vorort'; }
+        else if (t >= alarm) { const p = (t - alarm) / Math.max(0.1, an - alarm); x = bx + (sx - bx) * p; y = by + (sy - by) * p; z = 'anfahrt'; }
+        lage[f.fid] = { x, y, z, station: st.id, f, alarm };
+      });
+    });
+    return { di, lage };
+  }
+
+  function karteSvg(e, plan, t, bearbeitbar) {
+    const { lage } = fahrzeugLage(e, plan, t);
+    let s = '<svg viewBox="0 0 ' + KW + ' ' + KH + '" role="img" aria-label="Lagekarte des Übungsgeländes">';
+    if (e.karteBild) s += '<image href="' + esc(e.karteBild) + '" x="0" y="0" width="' + KW + '" height="' + KH + '" preserveAspectRatio="xMidYMid slice"/>';
+    else {
+      // schematisches Gelände, bis ein echter Lageplan hochgeladen ist
+      s += '<rect width="' + KW + '" height="' + KH + '" fill="var(--map-ground)"/>' +
+        '<path d="M0 312 H1000 M500 0 V625 M140 0 C 180 200, 120 420, 200 625" stroke="var(--map-road)" stroke-width="26" fill="none"/>' +
+        '<path d="M0 312 H1000 M500 0 V625 M140 0 C 180 200, 120 420, 200 625" stroke="var(--line)" stroke-width="1" stroke-dasharray="10 12" fill="none"/>' +
+        [[600, 380, 140, 70], [780, 120, 120, 80], [330, 90, 110, 60], [360, 420, 90, 80], [860, 470, 100, 90]].map(r => '<rect x="' + r[0] + '" y="' + r[1] + '" width="' + r[2] + '" height="' + r[3] + '" fill="var(--map-build)" rx="3"/>').join('') +
+        '<text x="16" y="606" class="klein-label">Schema – Lageplan des Geländes in den Einstellungen hochladen</text>';
+    }
+    const ein = e.eingang, br = e.bereitstellung;
+    s += '<g class="' + (bearbeitbar ? 'zieh' : '') + '" data-ziehen="eingang"><rect x="' + (ein.x * KW - 40) + '" y="' + (ein.y * KH - 16) + '" width="80" height="32" rx="4" fill="var(--fg)"/><text x="' + ein.x * KW + '" y="' + (ein.y * KH + 5) + '" text-anchor="middle" class="st-label" style="fill:var(--bg);stroke:none;font-size:13px">EINGANG</text></g>';
+    s += '<g class="' + (bearbeitbar ? 'zieh' : '') + '" data-ziehen="bereitstellung"><rect x="' + (br.x * KW - 90) + '" y="' + (br.y * KH - 40) + '" width="180" height="80" rx="6" fill="none" stroke="var(--blau)" stroke-width="2" stroke-dasharray="6 5"/><text x="' + br.x * KW + '" y="' + (br.y * KH - 46) + '" text-anchor="middle" class="st-label" style="font-size:13px">Bereitstellungsraum</text></g>';
+    e.stationen.forEach((st, i) => {
+      const x = st.x * KW, y = st.y * KH;
+      s += '<g class="' + (bearbeitbar ? 'zieh' : '') + '" data-ziehen="st:' + i + '"><circle cx="' + x + '" cy="' + y + '" r="58" fill="color-mix(in srgb, var(--accent) 12%, transparent)" stroke="var(--accent)" stroke-width="2"/>' +
+        '<text x="' + x + '" y="' + (y - 64) + '" text-anchor="middle" class="st-label">' + esc(st.id.replace('S', 'SIM ') + ' · ' + st.name) + '</text>' +
+        '<text x="' + x + '" y="' + (y + 4) + '" text-anchor="middle" class="klein-label">' + (st.patienten || 0) + ' Pat.</text></g>';
+    });
+    const farbe = { RTW: 'var(--accent)', KTW: 'var(--blau)', NEF: 'var(--sk1)' };
+    Object.values(lage).forEach(l => {
+      if (l.z === 'zurueck') return;
+      s += '<g><title>' + esc(l.f.funkrufname + ' · ' + (l.z === 'vorort' ? 'vor Ort' : l.z === 'anfahrt' ? 'auf Anfahrt' : 'Alarm ' + C.minZuZeit(l.alarm))) + '</title>' +
+        '<rect x="' + (l.x - 7) + '" y="' + (l.y - 4.5) + '" width="14" height="9" rx="2" fill="' + farbe[l.f.typ] + '" stroke="var(--surface)" stroke-width="1.2" opacity="' + (l.z === 'bereit' ? 0.55 : 1) + '"/></g>';
+    });
+    return s + '</svg>';
+  }
+
+  function viewLage() {
+    const e = pub.einstellungen, t = jetztMin();
+    const { di, lage } = fahrzeugLage(e, pub.plan, t);
+    const dg = e.durchgaenge[di];
+    let h = '<div class="seitenkopf"><div><div class="eyebrow">Live</div><h1>Lagekarte</h1></div><p>' +
+      (dg ? 'Durchgang ' + (di + 1) + ' · ' + dg.start + '–' + dg.ende + (t < C.zeitZuMin(dg.start) ? ' (beginnt gleich)' : ' (läuft)') : 'Alle Durchgänge sind beendet.') + ' · Stand ' + C.minZuZeit(t) + ' Uhr</p></div>';
+    h += '<div class="lage"><div class="flaeche"><div class="karte" id="karte">' + karteSvg(e, pub.plan, t, Store.orga) + '</div>' +
+      '<div class="legende"><span><i style="background:var(--accent)"></i>RTW</span><span><i style="background:var(--blau)"></i>KTW</span><span><i style="background:var(--sk1)"></i>NEF</span><span>blass = wartet im Bereitstellungsraum</span>' +
+      (Store.orga ? '<span>Stationen, Eingang und Bereitstellungsraum lassen sich mit der Maus verschieben.</span>' : '') + '</div></div>';
+    h += '<aside class="flaeche"><h3>Stationen jetzt</h3>';
+    const d = pub.plan && pub.plan.durchgaenge[di];
+    e.stationen.forEach(st => {
+      const ei = d && d.einsaetze.find(x => x.station === st.id);
+      const fz = Object.values(lage).filter(l => l.station === st.id);
+      const vor = fz.filter(l => l.z === 'vorort').length, an = fz.filter(l => l.z === 'anfahrt').length;
+      const naechster = fz.filter(l => l.z === 'bereit').sort((a, b) => a.alarm - b.alarm)[0];
+      h += '<div style="display:grid;gap:3px"><div class="zeile"><b>' + esc(st.name) + '</b>' + (ei ? '<span class="pille">Wache ' + ei.wache + '</span>' : '') + '</div>' +
+        '<div class="leise">' + vor + ' vor Ort · ' + an + ' auf Anfahrt · ' + (fz.length - vor - an) + ' warten' + (naechster ? ' · nächster Alarm ' + C.minZuZeit(naechster.alarm) + ' <span class="frn">' + esc(naechster.f.funkrufname) + '</span>' : '') + '</div>' +
+        '<div class="balken" aria-hidden="true"><i style="width:' + (fz.length ? vor / fz.length * 100 : 0) + '%;background:var(--sk3)"></i><i style="width:' + (fz.length ? an / fz.length * 100 : 0) + '%;background:var(--sk2)"></i></div></div>';
+    });
+    const zl = pub.zaehlung;
+    h += '<div class="trenner"></div><h3>Auf dem Gelände</h3><div class="leise">3. LJ ' + zl[3].da + '/' + zl[3].gesamt + ' · 2. LJ ' + zl[2].da + '/' + zl[2].gesamt + ' · 1. LJ ' + zl[1].da + '/' + zl[1].gesamt + ' eingecheckt</div></aside></div>';
+    return h;
+  }
+
+  /* ================= Stationen ================= */
+  function viewStationen() {
+    const e = pub.einstellungen, plan = Store.orga && voll ? voll.plan : pub.plan;
+    const st = station(e, ui.station);
+    let h = '<div class="seitenkopf"><div><div class="eyebrow">Für Stationsleitungen</div><h1>Alarmierung ' + esc(st.id.replace('S', 'SIM ')) + '</h1></div><p>Welche Wache kommt wann, und in welcher Minute wird welches Fahrzeug alarmiert.</p></div>';
+    h += '<div class="zeile">' + e.stationen.map(s => '<button class="knopf" data-act="station" data-id="' + s.id + '" aria-pressed="' + (s.id === st.id) + '">' + esc(s.id.replace('S', 'SIM ') + ' ' + s.name) + '</button>').join('') + '</div>';
+    if (!plan) return h + '<div class="hinweis">Noch kein Plan erstellt.</div>';
+    const name = id => { const p = voll && voll.personen.find(x => x.id === id); return p ? p.name : ''; };
+    plan.durchgaenge.forEach((d, di) => {
+      const dg = e.durchgaenge[di]; if (!dg) return;
+      const ei = d.einsaetze.find(x => x.station === st.id); if (!ei) return;
+      const start = C.zeitZuMin(dg.start);
+      const mg = d.mimen[st.id], zg = d.zuschauer[st.id];
+      const anzM = pub.gruppen[2] ? pub.gruppen[2][mg] || 0 : 0, anzZ = pub.gruppen[1] ? pub.gruppen[1][zg] || 0 : 0;
+      h += '<section class="flaeche"><div class="zeile" style="justify-content:space-between"><h2>Durchgang ' + (di + 1) + ' · ' + dg.start + '–' + dg.ende + '</h2><div class="zeile"><span class="pille akzent">Wache ' + ei.wache + '</span>' +
+        '<span class="pille">Mimen Gruppe ' + gruppeBuchst(mg) + ' (' + anzM + ')</span><span class="pille">Beobachtung Gruppe ' + gruppeBuchst(zg) + ' (' + anzZ + ')</span></div></div>' +
+        '<div class="leise">Mimen schminken ab ' + C.minZuZeit(start - e.schminkenVorher) + ', Treffen am Einsatzort ' + C.minZuZeit(start - e.treffenVorher) + '.</div>';
+      h += '<div class="tabelle-box"><table><thead><tr><th>Alarm</th><th>Minute</th><th>Fahrzeug</th><th>Typ</th><th>Kennzeichen</th><th>Träger</th><th>Besatzung</th></tr></thead><tbody>';
+      ei.fahrzeuge.forEach(f => {
+        const bes = Array.isArray(f.besatzung) ? (Store.orga ? f.besatzung.map(name).join(', ') : f.besatzung.length + ' Pers.') : f.besatzung + ' Pers.';
+        h += '<tr class="' + (f.erste ? 'erste' : '') + '"><td class="mono">' + C.minZuZeit(start + f.minute) + '</td><td class="mono">+' + f.minute + '</td><td class="frn">' + esc(f.funkrufname) + '</td><td>' + typ(f.typ) + '</td><td>' + kz(f.kennzeichen) + '</td><td>' + esc(f.traeger) + '</td><td>' + esc(bes) + '</td></tr>';
+      });
+      h += '</tbody></table></div>' + (ei.hinweise && ei.hinweise.length ? '<div class="hinweis">' + ei.hinweise.map(esc).join('<br>') + '</div>' : '') + '</section>';
+    });
+    return h;
+  }
+
+  /* ================= Orga ================= */
+  function viewOrga() {
+    if (!Store.orga) {
+      return '<div class="seitenkopf"><div><div class="eyebrow">Nur für das Orga-Team</div><h1>Orga-Bereich</h1></div><p>Hier werden Teilnehmende und Fahrzeuge verwaltet und der Plan erstellt.</p></div>' +
+        '<form class="flaeche" id="login-form" style="max-width:420px"><label class="feld" for="pw"><span>Passwort</span><input id="pw" type="password" autocomplete="current-password"></label>' +
+        '<button class="knopf haupt" type="submit">Anmelden</button>' + (Store.modus === 'demo' ? '<p class="leise">Demo-Passwort: <span class="mono">' + DEMO_PASSWORT + '</span></p>' : '') + '<div id="login-fehler"></div></form>';
+    }
+    if (!voll) return '<p class="leise">Lade Daten …</p>';
+    const tabs = [['lage', 'Lage'], ['fahrzeuge', 'Fahrzeuge'], ['personen', 'Teilnehmende'], ['plan', 'Plan'], ['gerecht', 'Gerechtigkeit'], ['einst', 'Einstellungen']];
+    let h = '<div class="seitenkopf"><div><div class="eyebrow">Orga-Team</div><h1>Steuerung</h1></div><button class="knopf klein" data-act="abmelden">Abmelden</button></div>';
+    h += '<div class="tabs" role="tablist">' + tabs.map(([id, t]) => '<button role="tab" data-act="tab" data-id="' + id + '" aria-selected="' + (ui.orgaTab === id) + '">' + t + '</button>').join('') + '</div>';
+    h += ({ lage: orgaLage, fahrzeuge: orgaFahrzeuge, personen: orgaPersonen, plan: orgaPlan, gerecht: orgaGerecht, einst: orgaEinst })[ui.orgaTab]();
+    return h;
+  }
+
+  function naechsterOffenerDurchgang(e) {
+    const t = jetztMin();
+    for (let i = 0; i < e.durchgaenge.length; i++) if (t < C.zeitZuMin(e.durchgaenge[i].start)) return i;
+    return e.durchgaenge.length;
+  }
+
+  function planStatus() {
+    const z = voll, e = z.einstellungen;
+    const veraltet = C.planVeraltet(z);
+    const ab = naechsterOffenerDurchgang(e);
+    let h = '';
+    if (!z.plan) h += '<div class="hinweis rot"><b>Noch kein Plan.</b> <button class="knopf haupt klein" data-act="planen" data-ab="0">Plan erstellen</button></div>';
+    else if (veraltet) {
+      h += '<div class="hinweis rot"><b>Der Plan passt nicht mehr</b> zu den aktuellen Fahrzeugen oder Teilnehmenden. ' +
+        (ab < e.durchgaenge.length ? '<button class="knopf haupt klein" data-act="planen" data-ab="' + ab + '">Ab Durchgang ' + (ab + 1) + ' neu planen</button> ' : 'Alle Durchgänge haben schon begonnen. ') +
+        '<button class="knopf klein" data-act="planen" data-ab="0">Alles neu planen</button></div>';
+    } else h += '<div class="hinweis gruen">Der Plan ist aktuell (erstellt ' + new Date(z.plan.erstellt).toLocaleString('de-DE', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) + ').</div>';
+    return h;
+  }
+
+  function orgaLage() {
+    const z = voll, e = z.einstellungen, k = C.kapazitaet(z);
+    const lj = n => z.personen.filter(p => p.lj === n && p.status !== 'abgemeldet');
+    const kart = (zahl, text) => '<div class="kennzahl"><b>' + zahl + '</b><span>' + text + '</span></div>';
+    let h = planStatus();
+    h += '<div class="raster">';
+    h += '<section class="flaeche"><h3>Teilnehmende</h3><div class="raster" style="grid-template-columns:repeat(3,1fr)">' +
+      [3, 2, 1].map(n => kart(lj(n).filter(p => p.eingecheckt).length + '<span class="leise" style="font-size:1rem"> / ' + lj(n).length + '</span>', n + '. LJ eingecheckt')).join('') + '</div>' +
+      '<label class="zeile" for="nur-ein"><input id="nur-ein" type="checkbox" data-act="nur-eingecheckte"' + (e.nurEingecheckte ? ' checked' : '') + '> Nur eingecheckte Teilnehmende einplanen (am SimTag einschalten)</label></section>';
+    h += '<section class="flaeche"><h3>Fahrzeuge</h3><div class="raster" style="grid-template-columns:repeat(3,1fr)">' + kart(k.RTW, 'RTW') + kart(k.KTW, 'KTW') + kart(k.NEF, 'NEF') + '</div>' +
+      '<p class="leise">' + z.fahrzeuge.filter(f => f.status === 'da').length + ' vor Ort angemeldet, ' + z.fahrzeuge.filter(f => f.status === 'gemeldet').length + ' nur vorab gemeldet, ' + z.fahrzeuge.filter(f => f.status === 'defekt' || f.status === 'abgemeldet').length + ' fallen aus.</p></section>';
+    const proD = Math.min(k.tn, k.max);
+    h += '<section class="flaeche"><h3>Rechnung je Durchgang</h3><p>' + k.tn + ' Teilnehmende im 3. LJ, ' + k.min + ' bis ' + k.max + ' Sitzplätze. ' +
+      (k.tn > k.max ? 'Pro Durchgang fahren ' + proD + ', ' + (k.tn - k.max) + ' beobachten.' : k.tn < k.min ? '<b>Zu wenige Leute:</b> einige Fahrzeuge bleiben unbesetzt.' : 'Alle fahren in jedem Durchgang.') + '</p>' +
+      '<p class="leise">Erste Welle: ' + k.ersteSitze + ' Plätze über den Tag. ' + (k.ersteSitze >= k.tn ? 'Das reicht, damit jede Person mindestens einmal vorne fährt.' : 'Das reicht nicht für alle. Erste Welle in den Einstellungen vergrößern.') + '</p></section>';
+    h += '</div>';
+    h += '<section class="flaeche"><h3>Check-in am Eingang</h3><div class="zeile" style="align-items:start;gap:20px"><div class="qr" id="qr-eingang"></div><div style="display:grid;gap:8px;min-width:0"><p>Diesen QR-Code am Eingang aufhängen. Teilnehmende scannen ihn und geben ihren Code ein.</p><p class="mono leise" style="word-break:break-all">' + esc(checkinUrl()) + '</p>' +
+      '<label class="feld" for="orga-checkin"><span>Für jemanden einchecken (Code)</span><input id="orga-checkin" type="text" class="mono" maxlength="8" placeholder="ABC123"></label><button class="knopf" data-act="orga-checkin">Einchecken</button></div></div></section>';
+    return h;
+  }
+
+  function orgaFahrzeuge() {
+    const z = voll;
+    const traeger = [...new Set(z.fahrzeuge.map(f => f.traeger).concat(z.personen.map(p => p.traeger)).filter(Boolean))].sort();
+    let h = planStatus();
+    h += '<form class="flaeche" id="fz-form"><h3>Fahrzeug anmelden</h3><div class="zeile">' + C.TYPEN.map(t => '<button type="button" class="knopf gross" data-act="fz-typ" data-typ="' + t + '" aria-pressed="' + (ui.fzTyp === t) + '">' + t + '</button>').join('') + '</div>' +
+      '<div class="raster"><label class="feld" for="fz-kz"><span>Kennzeichen</span><input id="fz-kz" type="text" autocomplete="off" placeholder="GT-RD 9012" class="mono"></label>' +
+      '<label class="feld" for="fz-tr"><span>Träger</span><input id="fz-tr" type="text" list="traeger-liste" autocomplete="off" placeholder="Kreis Gütersloh"></label></div>' +
+      '<datalist id="traeger-liste">' + traeger.map(t => '<option value="' + esc(t) + '"></option>').join('') + '</datalist>' +
+      '<div class="zeile"><button class="knopf haupt" type="submit">Fahrzeug ist da</button><span class="leise">Die App ordnet es einer Wache zu und vergibt den Funkrufnamen.</span></div><div id="fz-ergebnis">' + (ui.fzMeldung || '') + '</div></form>';
+    const liste = z.fahrzeuge.slice().sort((a, b) => a.wache - b.wache || a.typ.localeCompare(b.typ) || a.nr - b.nr);
+    h += '<section class="flaeche"><h3>Alle Fahrzeuge (' + liste.length + ')</h3><div class="tabelle-box"><table><thead><tr><th>Funkrufname</th><th>Typ</th><th>Kennzeichen</th><th>Träger</th><th>Wache</th><th>Status</th></tr></thead><tbody>' +
+      liste.map(f => '<tr class="' + (f.status === 'defekt' || f.status === 'abgemeldet' ? 'aus' : '') + '"><td class="frn">' + esc(f.funkrufname) + '</td><td>' + typ(f.typ) + '</td><td>' + kz(f.kennzeichen) + '</td><td>' + esc(f.traeger) + '</td><td>' + f.wache + '</td><td>' +
+        '<select data-act="fz-status" data-id="' + f.id + '" aria-label="Status ' + esc(f.funkrufname) + '">' + [['gemeldet', 'vorab gemeldet'], ['da', 'vor Ort'], ['defekt', 'defekt'], ['abgemeldet', 'abgemeldet']].map(([v, t]) => '<option value="' + v + '"' + (f.status === v ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></td></tr>').join('') +
+      '</tbody></table></div></section>';
+    return h;
+  }
+
+  function orgaPersonen() {
+    const z = voll, q = ui.suche.toLowerCase();
+    const liste = z.personen.filter(p => p.lj === ui.filterLj && (!q || (p.name + ' ' + p.klasse + ' ' + p.traeger + ' ' + p.code).toLowerCase().includes(q)))
+      .sort((a, b) => (a.klasse || '').localeCompare(b.klasse || '') || a.name.localeCompare(b.name));
+    let h = planStatus();
+    h += '<section class="flaeche"><div class="zeile">' + [3, 2, 1].map(n => '<button class="knopf" data-act="lj" data-lj="' + n + '" aria-pressed="' + (ui.filterLj === n) + '">' + n + '. LJ (' + z.personen.filter(p => p.lj === n).length + ')</button>').join('') +
+      '<label class="feld" for="suche" style="flex:1;min-width:180px"><span>Suchen</span><input id="suche" type="text" value="' + esc(ui.suche) + '" placeholder="Name, Klasse, Träger oder Code"></label></div>' +
+      '<div class="tabelle-box"><table><thead><tr><th>Name</th><th>Klasse</th><th>Träger</th><th>' + (ui.filterLj === 3 ? 'Wache' : 'Gruppe') + '</th><th>Code</th><th>Status</th><th>Check-in</th></tr></thead><tbody>' +
+      liste.map(p => '<tr class="' + (p.status === 'krank' || p.status === 'abgemeldet' ? 'aus' : '') + '"><td>' + esc(p.name) + '</td><td>' + esc(p.klasse) + '</td><td>' + esc(p.traeger) + '</td><td>' + (p.lj === 3 ? p.wache || '–' : gruppeBuchst(p.gruppe)) + '</td><td class="mono">' + esc(p.code) + '</td><td>' +
+        '<select data-act="p-status" data-id="' + p.id + '" aria-label="Status ' + esc(p.name) + '">' + [['angemeldet', 'angemeldet'], ['krank', 'krank'], ['abgemeldet', 'abgemeldet']].map(([v, t]) => '<option value="' + v + '"' + (p.status === v ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></td><td>' +
+        (p.eingecheckt ? '<button class="knopf klein" data-act="p-checkout" data-id="' + p.id + '">✓ ' + new Date(p.eingecheckt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + '</button>' : '<button class="knopf klein" data-act="p-checkin" data-id="' + p.id + '">einchecken</button>') + '</td></tr>').join('') +
+      '</tbody></table></div></section>';
+    h += '<section class="flaeche"><h3>Teilnehmende einfügen</h3><p class="leise">Aus Excel kopieren und hier einfügen, eine Person pro Zeile: <span class="mono">Name; Klasse; Ausbildungsjahr; Träger</span>. Codes werden automatisch vergeben.</p>' +
+      '<textarea id="import" placeholder="Muster, Lena;24A;3;Kreis Gütersloh"></textarea><div class="zeile"><button class="knopf haupt" data-act="import">Einfügen</button>' +
+      (window.SIMTAG_DEMO ? '' : '<button class="knopf" data-act="codes-csv">Codeliste herunterladen (CSV)</button>') + '<button class="knopf" data-act="wachen-neu">Wachen und Gruppen neu verteilen</button></div>' +
+      '<p class="leise">„Neu verteilen“ nur vor dem SimTag benutzen. Am Tag selbst gleicht „Neu planen“ die Wachen automatisch aus und verschiebt nur so wenige Leute wie nötig.</p></section>';
+    return h;
+  }
+
+  function orgaPlan() {
+    const z = voll, e = z.einstellungen;
+    let h = planStatus();
+    if (!z.plan) return h;
+    const di = Math.min(ui.planD, z.plan.durchgaenge.length - 1), d = z.plan.durchgaenge[di], dg = e.durchgaenge[di];
+    const name = id => { const p = z.personen.find(x => x.id === id); return p ? p.name : '?'; };
+    h += '<div class="zeile">' + e.durchgaenge.map((x, i) => '<button class="knopf" data-act="plan-d" data-i="' + i + '" aria-pressed="' + (i === di) + '">D' + (i + 1) + ' · ' + x.start + '</button>').join('') + '</div>';
+    d.einsaetze.forEach(ei => {
+      const st = station(e, ei.station), start = C.zeitZuMin(dg.start);
+      h += '<section class="flaeche"><div class="zeile" style="justify-content:space-between"><h3>Wache ' + ei.wache + ' → ' + esc(st.id.replace('S', 'SIM ') + ' ' + st.name) + '</h3><span class="leise">' + ei.fahrzeuge.reduce((s, f) => s + f.besatzung.length, 0) + ' fahren · ' + ei.pause.length + ' beobachten</span></div>' +
+        '<div class="tabelle-box"><table><thead><tr><th>Alarm</th><th>Fahrzeug</th><th>Kennzeichen</th><th>Fahrer:in</th><th>Besatzung</th></tr></thead><tbody>' +
+        ei.fahrzeuge.map(f => '<tr class="' + (f.erste ? 'erste' : '') + '"><td class="mono">' + C.minZuZeit(start + f.minute) + '</td><td><span class="frn">' + esc(f.funkrufname) + '</span></td><td>' + kz(f.kennzeichen) + '</td><td>' + esc(name(f.fahrer)) + (f.fahrerFremd ? ' <span class="pille warn" title="Niemand aus der Besatzung kommt vom Träger des Fahrzeugs">fremder Träger</span>' : '') + '</td><td>' + f.besatzung.filter(x => x !== f.fahrer).map(name).map(esc).join(', ') + '</td></tr>').join('') +
+        '</tbody></table></div>' + (ei.pause.length ? '<p class="leise"><b>Beobachten:</b> ' + ei.pause.map(name).map(esc).join(', ') + '</p>' : '') +
+        (ei.hinweise.length ? '<div class="hinweis">' + ei.hinweise.map(esc).join('<br>') + '</div>' : '') + '</section>';
+    });
+    return h;
+  }
+
+  function verteilungsBalken(titel, vert, gesamt, gutAb) {
+    const keys = Object.keys(vert).map(Number).sort((a, b) => a - b);
+    return '<section class="flaeche"><h3>' + titel + '</h3>' + keys.map(k => {
+      const n = vert[k], pct = gesamt ? n / gesamt * 100 : 0;
+      const farbe = k >= gutAb ? 'var(--sk3)' : 'var(--sk1)';
+      return '<div style="display:grid;grid-template-columns:70px 1fr 48px;gap:8px;align-items:center"><span class="mono">' + k + '×</span><div class="balken"><i style="width:' + pct + '%;background:' + farbe + '"></i></div><span class="mono">' + n + '</span></div>';
+    }).join('') + '</section>';
+  }
+
+  function orgaGerecht() {
+    const z = voll;
+    if (!z.plan) return planStatus();
+    const g = C.gerechtigkeit(z);
+    const minE = Math.min(...Object.keys(g.einsaetze).map(Number)), maxE = Math.max(...Object.keys(g.einsaetze).map(Number));
+    let h = planStatus();
+    h += '<p>' + g.anzahl + ' Teilnehmende im 3. LJ. Jede Person fährt ' + (minE === maxE ? minE : minE + ' bis ' + maxE) + '-mal. ' + (g.ohneErste.length ? g.ohneErste.length + ' Person(en) sind nie in der ersten Welle.' : 'Alle sind mindestens einmal in der ersten Welle.') + '</p>';
+    h += '<div class="raster">' + verteilungsBalken('Einsätze pro Person', g.einsaetze, g.anzahl, maxE - 1) + verteilungsBalken('Erste Welle pro Person', g.erste, g.anzahl, 1) + verteilungsBalken('NEF pro Person', g.nef, g.anzahl, 1) + '</div>';
+    if (g.ohneErste.length) h += '<div class="hinweis">Nie in der ersten Welle: ' + g.ohneErste.map(id => esc((z.personen.find(p => p.id === id) || {}).name)).join(', ') + '</div>';
+    h += '<p class="leise">So verteilt die App: Wer bisher am wenigsten gefahren ist, fährt zuerst. Die Plätze der ersten Welle bekommen die, die am seltensten vorne waren. Die NEF-Plätze bekommen die, die noch nie NEF hatten. Fahrer:in wird möglichst jemand vom Träger des Fahrzeugs. Niemand sitzt zweimal auf demselben Fahrzeug, wenn es sich vermeiden lässt.</p>';
+    return h;
+  }
+
+  function orgaEinst() {
+    const e = voll.einstellungen;
+    let h = '<form class="flaeche" id="einst-form"><h3>Allgemein</h3><div class="raster">' +
+      '<label class="feld" for="e-datum"><span>Datum</span><input id="e-datum" type="date" value="' + esc(e.datum) + '"></label>' +
+      '<label class="feld" for="e-ort"><span>Ort</span><input id="e-ort" type="text" value="' + esc(e.ort) + '"></label>' +
+      '<label class="feld" for="e-welle"><span>Erste Welle (Fahrzeuge je Station)</span><input id="e-welle" type="number" min="1" max="6" value="' + e.ersteWelle + '"></label>' +
+      '<label class="feld" for="e-nef"><span>NEF wird als n-tes Fahrzeug alarmiert</span><input id="e-nef" type="number" min="1" max="10" value="' + e.nefPosition + '"></label>' +
+      '<label class="feld" for="e-anfahrt"><span>Anfahrt (Minuten)</span><input id="e-anfahrt" type="number" min="0" max="15" value="' + e.anfahrtMin + '"></label>' +
+      '<label class="feld" for="e-raster"><span>Alarmminuten in Reihenfolge</span><input id="e-raster" type="text" class="mono" value="' + esc(e.alarmRaster.join(', ')) + '"></label>' +
+      '<label class="feld" for="e-schminken"><span>Schminken vor Start (Min.)</span><input id="e-schminken" type="number" min="0" value="' + e.schminkenVorher + '"></label>' +
+      '<label class="feld" for="e-treffen"><span>Treffen vor Start (Min.)</span><input id="e-treffen" type="number" min="0" value="' + e.treffenVorher + '"></label></div>';
+    h += '<h3>Besatzung (mindestens / höchstens)</h3><div class="raster">' + C.TYPEN.map(t => '<div class="zeile"><b style="width:44px">' + t + '</b><input aria-label="' + t + ' mindestens" id="b-' + t + '-0" type="number" min="1" max="4" value="' + e.besatzung[t][0] + '" style="width:80px"><input aria-label="' + t + ' höchstens" id="b-' + t + '-1" type="number" min="1" max="4" value="' + e.besatzung[t][1] + '" style="width:80px"></div>').join('') + '</div>';
+    h += '<h3>Durchgänge</h3><div class="raster">' + e.durchgaenge.map((d, i) => '<div class="zeile"><b style="width:30px">D' + (i + 1) + '</b><input aria-label="D' + (i + 1) + ' Beginn" id="d-' + i + '-s" type="time" value="' + d.start + '" style="width:120px"><input aria-label="D' + (i + 1) + ' Ende" id="d-' + i + '-e" type="time" value="' + d.ende + '" style="width:120px"></div>').join('') + '</div>';
+    h += '<h3>Stationen</h3><div class="raster">' + e.stationen.map((s, i) => '<div class="zeile"><b style="width:50px">' + s.id.replace('S', 'SIM ') + '</b><input aria-label="Name" id="s-' + i + '-n" type="text" value="' + esc(s.name) + '" style="flex:1;min-width:120px"><input aria-label="Patienten" id="s-' + i + '-p" type="number" min="0" value="' + (s.patienten || 0) + '" style="width:80px" title="Anzahl Patient:innen"></div>').join('') + '</div>';
+    h += '<div class="zeile"><button class="knopf haupt" type="submit">Einstellungen speichern</button><span class="leise">Danach den Plan neu erstellen.</span></div></form>';
+    h += '<section class="flaeche"><h3>Lageplan des Geländes</h3><p class="leise">Ein Bild vom LAFP-Gelände (Screenshot aus einer Karte oder ein Lageplan) als Hintergrund der Lagekarte. Danach Stationen auf der Lagekarte an die richtige Stelle ziehen.</p>' +
+      '<div class="zeile"><input id="karte-bild" type="file" accept="image/*" aria-label="Lageplan hochladen">' + (e.karteBild ? '<button class="knopf klein" data-act="karte-weg">Bild entfernen</button>' : '') + '</div></section>';
+    h += '<section class="flaeche"><h3>Daten</h3><div class="zeile">' + (window.SIMTAG_DEMO ? '' : '<button class="knopf" data-act="export">Alles als Datei sichern (JSON)</button>') +
+      (Store.modus === 'demo' ? '<button class="knopf" data-act="demo-reset">Demo-Daten neu erzeugen</button>' : '') + '</div></section>';
+    return h;
+  }
+
+  /* ================= Rendern ================= */
+  async function laden() {
+    pub = await Store.oeffentlich();
+    if (Store.orga) { try { voll = await Store.voll(); } catch (e) { if (e.status === 401) Store.abmelden(); voll = null; } } else voll = null;
+    if (ui.route === 'plan' && ui.code) { try { mein = (await Store.mein(ui.code)) || false; } catch (e) { mein = false; } } else mein = null;
+  }
+
+  function render() {
+    const fokus = document.activeElement && document.activeElement.id;
+    const sel = fokus && document.activeElement.selectionStart;
+    const view = { plan: viewPlan, lage: viewLage, stationen: viewStationen, checkin: viewCheckin, orga: viewOrga }[ui.route] || viewPlan;
+    document.getElementById('app').innerHTML = rahmen(view());
+    if (fokus) { const el = document.getElementById(fokus); if (el) { el.focus(); try { if (sel != null && el.setSelectionRange) el.setSelectionRange(sel, sel); } catch (e) { /* egal */ } } }
+    const qr = document.getElementById('qr-eingang');
+    if (qr && window.QRCode) { qr.innerHTML = ''; new window.QRCode(qr, { text: checkinUrl(), width: 180, height: 180, correctLevel: window.QRCode.CorrectLevel.M }); }
+  }
+
+  async function neu() { await laden(); render(); }
+
+  function route() {
+    ui.checkinMeldung = ''; ui.fzMeldung = '';
+    const h = (location.hash || '').replace('#', '');
+    ui.route = ROUTEN.some(r => r[0] === h) ? h : 'plan';
+    neu();
+  }
+
+  /* ================= Ereignisse ================= */
+  document.addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const f = ev.target;
+    try {
+      if (f.id === 'code-form') { ui.code = $('#code').value.trim().toUpperCase(); ls.set('simtag-code', ui.code); await neu(); }
+      if (f.id === 'checkin-form') {
+        const code = $('#checkin-code').value.trim().toUpperCase();
+        const r = await Store.einchecken(code).catch(() => null);
+        ui.checkinMeldung = r ? '<div class="hinweis gruen"><div class="ok-gross">✓ Willkommen, ' + esc(r.name.split(' ')[0]) + '</div>' + (r.neu ? 'Du bist eingecheckt.' : 'Du warst schon eingecheckt.') + ' <a href="#plan">Zu deinem Plan</a></div>'
+          : '<div class="hinweis rot">Code nicht gefunden. Prüfe die Schreibweise oder frag am Eingang nach.</div>';
+        if (r) { ui.code = code; ls.set('simtag-code', code); }
+        render();
+      }
+      if (f.id === 'login-form') {
+        try { await Store.anmelden($('#pw').value); await neu(); } catch (e) { $('#login-fehler').innerHTML = '<div class="hinweis rot">' + esc(e.message || 'Anmeldung fehlgeschlagen') + '</div>'; }
+      }
+      if (f.id === 'fz-form') {
+        const kzW = $('#fz-kz').value.trim(), tr = $('#fz-tr').value.trim();
+        if (!kzW || !tr) { ui.fzMeldung = '<div class="hinweis rot">Bitte Kennzeichen und Träger eintragen.</div>'; return render(); }
+        const typW = ui.fzTyp;
+        const fz = await Store.aendern(z => {
+          const da = z.fahrzeuge.find(x => C.norm(x.kennzeichen) === C.norm(kzW));
+          if (da) { da.status = 'da'; da.registriert = new Date().toISOString(); da.typ = typW; da.traeger = tr; return da; }
+          return C.fahrzeugHinzufuegen(z, { typ: typW, kennzeichen: kzW, traeger: tr, status: 'da' });
+        });
+        ui.fzMeldung = '<div class="hinweis gruen">' + typ(fz.typ) + ' ' + kz(fz.kennzeichen) + ' ist angemeldet als <b class="frn" style="font-size:1.2rem">' + esc(fz.funkrufname) + '</b> (Wache ' + fz.wache + '). Plan danach neu erstellen.</div>';
+        await neu();
+      }
+      if (f.id === 'einst-form') {
+        const num = id => Number($('#' + id).value);
+        await Store.aendern(z => {
+          const e = z.einstellungen;
+          e.datum = $('#e-datum').value; e.ort = $('#e-ort').value; e.ersteWelle = num('e-welle'); e.nefPosition = num('e-nef'); e.anfahrtMin = num('e-anfahrt');
+          e.alarmRaster = $('#e-raster').value.split(/[,; ]+/).map(Number).filter(n => !isNaN(n));
+          e.schminkenVorher = num('e-schminken'); e.treffenVorher = num('e-treffen');
+          C.TYPEN.forEach(t => { const a = num('b-' + t + '-0'), b = num('b-' + t + '-1'); e.besatzung[t] = [Math.min(a, b), Math.max(a, b)]; });
+          e.durchgaenge.forEach((d, i) => { d.start = $('#d-' + i + '-s').value; d.ende = $('#d-' + i + '-e').value; });
+          e.stationen.forEach((s, i) => { s.name = $('#s-' + i + '-n').value; s.patienten = num('s-' + i + '-p'); });
+        });
+        toast('Einstellungen gespeichert'); await neu();
+      }
+    } catch (e) { toast(e.message || 'Das hat nicht geklappt.'); }
+  });
+
+  document.addEventListener('click', async ev => {
+    const b = ev.target.closest('[data-act]'); if (!b) return;
+    const act = b.dataset.act, id = b.dataset.id;
+    if (b.tagName === 'SELECT' || (b.tagName === 'INPUT' && b.type === 'checkbox')) return;
+    try {
+      if (act === 'bsp') { ui.code = b.dataset.code; ls.set('simtag-code', ui.code); return neu(); }
+      if (act === 'code-weg') { ui.code = ''; ls.del('simtag-code'); mein = null; return render(); }
+      if (act === 'selbst-checkin') { await Store.einchecken(ui.code); toast('Du bist eingecheckt'); return neu(); }
+      if (act === 'station') { ui.station = id; return render(); }
+      if (act === 'tab') { ui.orgaTab = id; return render(); }
+      if (act === 'abmelden') { Store.abmelden(); voll = null; return render(); }
+      if (act === 'lj') { ui.filterLj = Number(b.dataset.lj); return render(); }
+      if (act === 'plan-d') { ui.planD = Number(b.dataset.i); return render(); }
+      if (act === 'fz-typ') { ui.fzTyp = b.dataset.typ; document.querySelectorAll('[data-act="fz-typ"]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); return; }
+      if (act === 'planen') {
+        const ab = Number(b.dataset.ab);
+        await Store.aendern(z => C.planen(z, ab));
+        toast(ab > 0 ? 'Ab Durchgang ' + (ab + 1) + ' neu geplant' : 'Plan erstellt'); return neu();
+      }
+      if (act === 'p-checkin' || act === 'p-checkout') {
+        await Store.aendern(z => { const p = z.personen.find(x => x.id === id); if (p) p.eingecheckt = act === 'p-checkin' ? new Date().toISOString() : null; });
+        return neu();
+      }
+      if (act === 'orga-checkin') {
+        const code = $('#orga-checkin').value; const r = await Store.einchecken(code);
+        toast(r ? r.name + ' ist eingecheckt' : 'Code nicht gefunden'); return neu();
+      }
+      if (act === 'import') {
+        const zeilen = $('#import').value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+        const n = await Store.aendern(z => {
+          const codes = new Set(z.personen.map(p => p.code)); let k = 0;
+          zeilen.forEach(l => {
+            const t = l.split(/[;\t]/).map(s => s.trim());
+            if (!t[0] || /^name$/i.test(t[0])) return;
+            const lj = Number(t[2]) || 3;
+            z.personen.push({ id: C.uid('p'), name: t[0], klasse: t[1] || '', lj: [1, 2, 3].includes(lj) ? lj : 3, traeger: t[3] || '', code: C.neuerCode(codes), eingecheckt: null, status: 'angemeldet' });
+            k++;
+          });
+          C.wachenVerteilen(z, true); C.gruppenVerteilen(z, 2); C.gruppenVerteilen(z, 1);
+          return k;
+        });
+        toast(n + ' Personen eingefügt'); return neu();
+      }
+      if (act === 'wachen-neu') {
+        await Store.aendern(z => { C.wachenVerteilen(z, false); C.gruppenVerteilen(z, 2); C.gruppenVerteilen(z, 1); C.planen(z, 0); });
+        toast('Wachen und Gruppen neu verteilt, Plan neu erstellt'); return neu();
+      }
+      if (act === 'codes-csv') {
+        const z = voll;
+        const csv = 'Name;Klasse;LJ;Träger;Wache/Gruppe;Code\n' + z.personen.map(p => [p.name, p.klasse, p.lj, p.traeger, p.lj === 3 ? 'Wache ' + p.wache : 'Gruppe ' + gruppeBuchst(p.gruppe), p.code].join(';')).join('\n');
+        return datei('simtag-codes.csv', '﻿' + csv, 'text/csv');
+      }
+      if (act === 'export') return datei('simtag-daten-' + new Date().toISOString().slice(0, 10) + '.json', JSON.stringify(voll, null, 1), 'application/json');
+      if (act === 'demo-reset') { Store.demoZuruecksetzen(); toast('Demo-Daten neu erzeugt'); return neu(); }
+      if (act === 'karte-weg') { await Store.aendern(z => { delete z.einstellungen.karteBild; }); return neu(); }
+    } catch (e) { toast(e.message || 'Das hat nicht geklappt.'); }
+  });
+
+  document.addEventListener('change', async ev => {
+    const el = ev.target, act = el.dataset.act;
+    try {
+      if (act === 'fz-status') { await Store.aendern(z => { const f = z.fahrzeuge.find(x => x.id === el.dataset.id); if (f) f.status = el.value; }); return neu(); }
+      if (act === 'p-status') { await Store.aendern(z => { const p = z.personen.find(x => x.id === el.dataset.id); if (p) p.status = el.value; }); return neu(); }
+      if (act === 'nur-eingecheckte') { await Store.aendern(z => { z.einstellungen.nurEingecheckte = el.checked; }); return neu(); }
+      if (el.id === 'karte-bild' && el.files[0]) {
+        const bild = await verkleinern(el.files[0], 1600);
+        await Store.aendern(z => { z.einstellungen.karteBild = bild; }); toast('Lageplan gespeichert'); return neu();
+      }
+    } catch (e) { toast(e.message || 'Das hat nicht geklappt.'); }
+  });
+
+  document.addEventListener('input', ev => {
+    if (ev.target.id === 'simzeit') {
+      ui.simZeit = Number(ev.target.value);
+      const t = $('#simzeit-text'); if (t) t.textContent = C.minZuZeit(ui.simZeit);
+      if (ui.route === 'lage' || ui.route === 'plan') { clearTimeout(ui.tz); ui.tz = setTimeout(render, 30); }
+    }
+    if (ev.target.id === 'suche') { ui.suche = ev.target.value; clearTimeout(ui.ts); ui.ts = setTimeout(render, 200); }
+  });
+
+  function verkleinern(file, maxB) {
+    return new Promise((ok, nein) => {
+      const r = new FileReader();
+      r.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const f = Math.min(1, maxB / img.width), c = document.createElement('canvas');
+          c.width = Math.round(img.width * f); c.height = Math.round(img.height * f);
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          ok(c.toDataURL('image/jpeg', 0.82));
+        };
+        img.onerror = nein; img.src = r.result;
+      };
+      r.onerror = nein; r.readAsDataURL(file);
+    });
+  }
+
+  // Ziehen auf der Lagekarte (nur Orga)
+  document.addEventListener('pointerdown', ev => {
+    const g = ev.target.closest('[data-ziehen]'); if (!g || !Store.orga || ui.route !== 'lage') return;
+    const svg = g.closest('svg'); ui.ziehen = { was: g.dataset.ziehen, svg, g };
+    g.setPointerCapture && g.setPointerCapture(ev.pointerId); ev.preventDefault();
+  });
+  document.addEventListener('pointermove', ev => {
+    if (!ui.ziehen) return;
+    const r = ui.ziehen.svg.getBoundingClientRect();
+    const x = Math.max(0.03, Math.min(0.97, (ev.clientX - r.left) / r.width)), y = Math.max(0.05, Math.min(0.95, (ev.clientY - r.top) / r.height));
+    ui.ziehen.pos = { x, y };
+    ui.ziehen.g.setAttribute('transform', 'translate(' + ((x - start(ui.ziehen.was).x) * KW) + ' ' + ((y - start(ui.ziehen.was).y) * KH) + ')');
+  });
+  function start(was) { const e = pub.einstellungen; if (was === 'eingang') return e.eingang; if (was === 'bereitstellung') return e.bereitstellung; return e.stationen[Number(was.split(':')[1])]; }
+  document.addEventListener('pointerup', async () => {
+    const z = ui.ziehen; ui.ziehen = null; if (!z || !z.pos) return;
+    await Store.aendern(st => {
+      const e = st.einstellungen, ziel = z.was === 'eingang' ? e.eingang : z.was === 'bereitstellung' ? e.bereitstellung : e.stationen[Number(z.was.split(':')[1])];
+      ziel.x = Math.round(z.pos.x * 1000) / 1000; ziel.y = Math.round(z.pos.y * 1000) / 1000;
+    }).catch(e => toast(e.message));
+    neu();
+  });
+
+  /* ================= Start ================= */
+  (async function startApp() {
+    await Store.init();
+    const q = new URLSearchParams(location.search);
+    if (q.get('c')) { ui.code = q.get('c').toUpperCase(); ls.set('simtag-code', ui.code); }
+    if (Store.modus === 'demo') ui.simZeit = 622;
+    else { try { const p0 = await Store.oeffentlich(); if (p0.demo) ui.simZeit = 622; } catch (e) { /* egal */ } }
+    Store.abonnieren(() => { if (!ui.ziehen) neu(); });
+    window.addEventListener('hashchange', route);
+    route();
+    // Lagekarte und „läuft“-Anzeige mitlaufen lassen
+    setInterval(() => { if (ui.route === 'lage' && ui.simZeit == null && !ui.ziehen) render(); }, 10000);
+  })();
+})();
+</script>
+</body></html>
