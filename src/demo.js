@@ -21,6 +21,21 @@
     fz('RTW', 32); fz('KTW', 6); fz('NEF', 10);
     Core.wachenVerteilen(z, false); Core.gruppenVerteilen(z, 2); Core.gruppenVerteilen(z, 1);
     Core.planen(z, 0);
+    // Beispiel-Anmeldungen aus der Warteschlange: zwei grün, eine schon durch, zwei für die rote Spur
+    const e = z.einstellungen, jetzt = Date.parse(e.datum + 'T07:05:00');
+    const zeit = m => new Date(jetzt + m * 60000).toISOString();
+    const mitKz = z.fahrzeuge.filter(f => f.kennzeichen && f.typ === 'RTW');
+    const crew = (f, n) => z.personen.filter(p => p.lj === 3 && !z.anmeldungen.some(a => a.personen.some(x => x.pid === p.id)) && Core.darfFahren(e, p, f)).slice(0, 1)
+      .concat(z.personen.filter(p => p.lj === 3 && !Core.darfFahren(e, p, f) && !z.anmeldungen.some(a => a.personen.some(x => x.pid === p.id))).slice(0, n - 1));
+    const anm = (f, leute, extra, m) => Core.anmeldungSpeichern(z, { typ: f.typ, kennzeichen: f.kennzeichen, traeger: f.traeger, personen: leute.map(p => ({ id: p.id })).concat(extra || []) }, zeit(m)).anmeldung;
+    if (mitKz.length >= 5) {
+      Core.anmeldungDurch(z, anm(mitKz[0], crew(mitKz[0], 3), null, 0).id, zeit(4));
+      anm(mitKz[1], crew(mitKz[1], 3), null, 6);
+      anm(mitKz[2], crew(mitKz[2], 2), null, 8);
+      anm(mitKz[3], crew(mitKz[3], 2), [{ name: 'Kim Beispielname' }], 9);
+      const fremd = mitKz[4];
+      Core.anmeldungSpeichern(z, { typ: 'RTW', kennzeichen: 'HX-AB 777', traeger: 'Kreis Höxter', personen: crew(fremd, 2).map(p => ({ id: p.id })) }, zeit(11));
+    }
     z.demo = true;
     return z;
   }

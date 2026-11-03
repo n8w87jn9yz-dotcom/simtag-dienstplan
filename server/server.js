@@ -29,6 +29,11 @@ let zustand;
 if (fs.existsSync(DATEI)) zustand = JSON.parse(fs.readFileSync(DATEI, 'utf8'));
 else { zustand = process.env.DEMO === '1' ? demoZustand(C) : C.leererZustand(); speichern(); }
 delete zustand.einstellungen.orgaPasswort;
+// Ältere Datenstände ergänzen
+if (!zustand.zugang) zustand.zugang = crypto.randomBytes(8).toString('base64url').replace(/[^A-Za-z0-9]/g, '').slice(0, 10).toUpperCase();
+if (!zustand.anmeldungen) zustand.anmeldungen = [];
+if (!zustand.einstellungen.fahrgruppen) zustand.einstellungen.fahrgruppen = JSON.parse(JSON.stringify(C.STANDARD_FAHRGRUPPEN));
+if (zustand.einstellungen.selbstanmeldung == null) zustand.einstellungen.selbstanmeldung = true;
 
 function speichern() {
   const tmp = DATEI + '.tmp';
@@ -62,6 +67,10 @@ function gleich(a, b) {
   return x.length === y.length && crypto.timingSafeEqual(x, y);
 }
 const istOrga = req => gleich(req.headers['x-orga-key'] || '', PASSWORT);
+// Zugangsschlüssel aus dem QR-Code bzw. Teilnahme-Link: schützt Namenssuche und Selbstanmeldung vor Fremden
+const hatZugang = (req, k) => istOrga(req) || gleich(String(k || '').toUpperCase(), zustand.zugang);
+const OHNE_ZUGANG = { fehler: 'Bitte den QR-Code bzw. Link vom SimTag öffnen.' };
+function geaendert() { zustand.version++; speichern(); melden(); }
 
 function json(res, code, daten) {
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -89,18 +98,45 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no' });
         res.write('retry: 5000\n\n'); hoerer.add(res); req.on('close', () => hoerer.delete(res)); return;
       }
+      if (r === 'namen') {
+        if (gebremst(req, 'namen', 120)) return json(res, 429, { fehler: 'Zu viele Anfragen. Bitte kurz warten.' });
+        if (!hatZugang(req, url.searchParams.get('z'))) return json(res, 403, OHNE_ZUGANG);
+        return json(res, 200, C.namenSuchen(zustand, String(url.searchParams.get('q') || '').slice(0, 60), 8));
+      }
       if (r === 'me') {
         if (gebremst(req, 'code', 30)) return json(res, 429, { fehler: 'Zu viele Versuche. Bitte eine Minute warten.' });
-        const m = C.meinPlan(zustand, url.searchParams.get('code'));
-        return m ? json(res, 200, m) : json(res, 404, { fehler: 'Code nicht gefunden' });
+        let m = null;
+        if (url.searchParams.get('id')) {
+          if (!hatZugang(req, url.searchParams.get('z'))) return json(res, 403, OHNE_ZUGANG);
+          m = C.meinPlanId(zustand, url.searchParams.get('id'));
+        } else m = C.meinPlan(zustand, url.searchParams.get('code'));
+        return m ? json(res, 200, m) : json(res, 404, { fehler: 'Nicht gefunden' });
       }
       if (r === 'checkin' && req.method === 'POST') {
         if (gebremst(req, 'code', 30)) return json(res, 429, { fehler: 'Zu viele Versuche. Bitte eine Minute warten.' });
         const b = await koerper(req, 1000);
-        const e = C.einchecken(zustand, b.code);
-        if (!e) return json(res, 404, { fehler: 'Code nicht gefunden' });
-        if (e.neu) { zustand.version++; speichern(); melden(); }
+        let e = null;
+        if (b.id) { if (!hatZugang(req, b.z)) return json(res, 403, OHNE_ZUGANG); e = C.eincheckenId(zustand, String(b.id)); }
+        else e = C.einchecken(zustand, b.code);
+        if (!e) return json(res, 404, { fehler: 'Nicht gefunden' });
+        if (e.neu) geaendert();
         return json(res, 200, e);
+      }
+      if (r === 'anmeldung') {
+        if (req.method === 'GET') {
+          if (gebremst(req, 'anm-lesen', 120)) return json(res, 429, { fehler: 'Zu viele Anfragen. Bitte kurz warten.' });
+          const b = C.bestaetigungLaden(zustand, String(url.searchParams.get('id') || ''), String(url.searchParams.get('token') || ''));
+          return b ? json(res, 200, b) : json(res, 404, { fehler: 'Anmeldung nicht gefunden' });
+        }
+        if (req.method === 'POST') {
+          if (gebremst(req, 'anm', 20)) return json(res, 429, { fehler: 'Zu viele Anmeldungen. Bitte eine Minute warten.' });
+          const b = await koerper(req, 8000);
+          if (!b.id && !hatZugang(req, b.z)) return json(res, 403, OHNE_ZUGANG);
+          const er = C.anmeldungSpeichern(zustand, b, new Date().toISOString(), crypto.randomBytes(12).toString('hex'));
+          if (er.fehler) return json(res, 404, er);
+          geaendert();
+          return json(res, 200, { id: er.anmeldung.id, token: er.anmeldung.token, bestaetigung: C.bestaetigung(zustand, er.anmeldung) });
+        }
       }
       if (r === 'login' && req.method === 'POST') {
         if (gebremst(req, 'login', 10)) return json(res, 429, { fehler: 'Zu viele Versuche. Bitte eine Minute warten.' });
@@ -114,7 +150,15 @@ const server = http.createServer(async (req, res) => {
           const b = await koerper(req, 8 * 1024 * 1024);
           if (b.basis !== zustand.version) return json(res, 409, { fehler: 'Konflikt', version: zustand.version });
           if (!b.zustand || !b.zustand.einstellungen || !Array.isArray(b.zustand.personen)) return json(res, 400, { fehler: 'Ungültige Daten' });
+          const zugang = zustand.zugang;
           zustand = b.zustand; zustand.version = b.basis + 1; delete zustand.einstellungen.orgaPasswort;
+          if (!zustand.zugang) zustand.zugang = zugang;
+          if (!Array.isArray(zustand.anmeldungen)) zustand.anmeldungen = [];
+// Ältere Datenstände ergänzen
+if (!zustand.zugang) zustand.zugang = crypto.randomBytes(8).toString('base64url').replace(/[^A-Za-z0-9]/g, '').slice(0, 10).toUpperCase();
+if (!zustand.anmeldungen) zustand.anmeldungen = [];
+if (!zustand.einstellungen.fahrgruppen) zustand.einstellungen.fahrgruppen = JSON.parse(JSON.stringify(C.STANDARD_FAHRGRUPPEN));
+if (zustand.einstellungen.selbstanmeldung == null) zustand.einstellungen.selbstanmeldung = true;
           speichern(); melden();
           return json(res, 200, { version: zustand.version });
         }
